@@ -1,4 +1,4 @@
-#include "feckinmad/fm"
+#include "feckinmad/fm_global"
 #include "feckinmad/fm_sql_player"
 #include "feckinmad/fm_sql_tquery"
 
