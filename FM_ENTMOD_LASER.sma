@@ -1,4 +1,5 @@
 #include "feckinmad/fm_global"
+#include "feckinmad/fm_point" // fm_GetAimEntity() && fm_GetAimOrigin()
 
 #include "feckinmad/entmod/fm_entmod_base" // fm_SetCachedEntKey()
 #include "feckinmad/entmod/fm_entmod_access" // fm_CheckUserEntAccess()

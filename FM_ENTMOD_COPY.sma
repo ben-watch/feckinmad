@@ -1,4 +1,5 @@
 #include "feckinmad/fm_global"
+#include "feckinmad/fm_point" // fm_GetAimEntity()
 
 #include "feckinmad/entmod/fm_entmod_misc" // fm_SetKeyValue()
 #include "feckinmad/entmod/fm_entmod_base" // fm_DestroyCachedEntKeys() etc
