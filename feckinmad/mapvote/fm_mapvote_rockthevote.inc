@@ -1,0 +1,1 @@
+#define FORCE_MAPVOTE_ID -1
