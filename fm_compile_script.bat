@@ -1,4 +1,4 @@
-::@echo off
+@echo off
 
 :: Makes current directory the working directory, saving the current one in memory
 pushd "%~dp0"
