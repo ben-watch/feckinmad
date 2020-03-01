@@ -3,8 +3,8 @@
 :: ------------------------------------------------------------------------------------
 :: INSTRUCTIONS TO COMPILE
 :: * Place amxxpc.exe, amxxpc32.dll and compile.exe inside a directory named .\tools
-:: * Place the amxmodx "includes" folder in the root .\
-:: * Output is in .\plugins
+:: * Place the contents of the amxmodx "includes" folder in .\includes
+:: * Drag and drop a .sma over this script to compile. Output is in .\plugins
 :: ------------------------------------------------------------------------------------
 
 :: Makes current directory the working directory, saving the current one in memory
