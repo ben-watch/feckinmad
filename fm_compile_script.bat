@@ -4,7 +4,8 @@
 pushd "%~dp0"
 
 ::set output dir for .amxx file
-set PLUGINS_DIR=.\plugins
+set PLUGINS_DIR=".\plugins"
+if not exist %PLUGINS_DIR% mkdir %PLUGINS_DIR%
 
 :: Echo the stuff we need for the plugins into .inc files
 echo stock const FM_SCRIPT_DATE[] = "%DATE%" > feckinmad\fm_script_version.inc
@@ -20,4 +21,4 @@ del feckinmad\fm_script_name.inc
 :: Return to the original working directory
 popd
 
-pause 
+timeout 5
