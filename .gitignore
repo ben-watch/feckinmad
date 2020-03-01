@@ -1,0 +1,4 @@
+tools/*
+plugins/*
+include/*.inc
+include/amxmod_compat/*.inc
