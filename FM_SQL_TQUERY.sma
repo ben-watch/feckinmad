@@ -1,3 +1,26 @@
+/*
+DESCRIPTION
+-Provides an API for threaded queries. Solves SQL module issues mentioned in NOTES below.
+
+
+NOTES
+-This was to solve the issues of:
+  -Queries getting executed first in first out. This plugin adds a priority flag to threaded queries.
+  -Queries hanging mapchange. If the map changed when there were 10 queries still in memory, the SQL module would block whilst waiting for
+   them to return one by one. This plugin adds a flag to allow queries to be disposed of if they are no longer relevant at mapchange.
+-Queries are stored in a dynamic array and pushed to the module by priority as the previous query returns.
+-All of the feckinmad plugins used this API for SQL queries.
+
+COMMANDS
+-None
+
+AUTHOR:
+-watch
+
+DATE:
+-2006 - 2010
+*/
+
 #include "feckinmad/fm_global"
 #include "feckinmad/fm_sql_api"
 #include "feckinmad/fm_sql_tquery"

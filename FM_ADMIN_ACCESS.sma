@@ -1,3 +1,23 @@
+/*
+DESCRIPTION
+-Grant admins their access when they connect.
+
+NOTES
+-Provides natives for other plugins to access an admins "real" name, unique ident # and access level. This is used when checking if
+a user can run a command, and when printing a command to all users when an an admin successfully runs it.
+-Relies on a forward from FM_ADMIN_API, fm_AdminInfoUpdated()
+-Provides password functionality for use in cases where a user shares their account.
+
+COMMANDS
+-"admin_refresh" - Allows a player to manually reload their access e.g. If their password failed.
+
+AUTHOR:
+-watch
+
+DATE:
+-2006 - 2010
+*/
+
 #include "feckinmad/fm_global"
 #include "feckinmad/fm_admin_api"
 #include "feckinmad/fm_admin_access"
