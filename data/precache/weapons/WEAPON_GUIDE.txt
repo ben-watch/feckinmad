@@ -1,0 +1,41 @@
+// CIVILIAN
+@import weapons/umbrella.ini
+
+// ENGY
+@import weapons/spanner.ini
+
+// SPY
+@import weapons/knife.ini
+
+// SPY
+@import weapons/tranq.ini
+
+// MEDIC
+@import weapons/supernailgun.ini
+
+// SCOUT, SNIPER, SPY
+@import weapons/nailgun.ini
+
+// DEMOMAN
+@import weapons/glauncher.ini
+
+// HWGUY
+@import weapons/ac.ini
+
+// SCOUT, SOLIDER, DEMOMAN, HWGUY, PYRO, SPY
+@import weapons/shotguns.ini
+
+// ENGY
+@import weapons/railgun.ini
+
+// MEDIC
+@import weapons/medikit.ini
+
+// PYRO
+@import weapons/flamethrower.ini
+
+// SNIPER
+@import weapons/rifle.ini
+
+// SOLIDER, PYRO
+@import weapons/rpg.ini
