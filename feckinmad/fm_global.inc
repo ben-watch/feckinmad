@@ -6,7 +6,7 @@
 #pragma ctrlchar '\'
 #include <amxmodx>
 
-#define MAX_PLAYERS 18 // [FM] Max. 
+//#define MAX_PLAYERS 18 // depreciated
 #define MAX_MAP_LEN 32
 #define MAX_NAME_LEN 32
 #define MAX_AUTHID_LEN 36
