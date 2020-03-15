@@ -8,7 +8,9 @@ new const g_sSqlConfig[] = "fm_sql.cfg"
 new Handle:g_SqlTuple = Empty_Handle
 
 new g_pCvarHostname, g_pCvarUsername, g_pCvarDatabase, g_pCvarPassword
-new g_pCvarEnabled, g_pCvarFailMax, g_pCvarTimeout, g_iConnectionFailCount
+new g_pCvarEnabled, g_pCvarTimeout
+//new g_pCvarFailMax, g_iConnectionFailCount // See notes on Native_CheckFailLimit()
+
 new g_iForward
 
 public plugin_precache()
@@ -19,8 +21,9 @@ public plugin_precache()
 	g_pCvarPassword = register_cvar("fm_sql_password", "")
 
 	g_pCvarEnabled = register_cvar("fm_sql_enabled", "0")
-	g_pCvarFailMax = register_cvar("fm_sql_maxfail", "3")
 	g_pCvarTimeout = register_cvar("fm_sql_timeout", "3")
+
+	//g_pCvarFailMax = register_cvar("fm_sql_maxfail", "3")
 
 	if (ExecuteSQLFile() && get_pcvar_num(g_pCvarEnabled))
 	{
@@ -119,6 +122,9 @@ public Native_GetSqlHandle()
 
 public Native_CheckFailLimit()
 {
+	// Workaround for issues with SQL failures and threaded queries stacking up in the SQLX module
+	// No longer needed, replaced by FM_SQL_TQUERY for better threaded query management
+	// Leave this forward in until all plugins updated to use new method.
 	/*fm_DebugPrintLevel(1, "Native_CheckFailLimit()")
 
 	if (g_SqlTuple != Empty_Handle && ++g_iConnectionFailCount >= get_pcvar_num(g_pCvarFailMax))

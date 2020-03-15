@@ -102,7 +102,7 @@ SelectPlayerMenu(id, iPos)
 	return PLUGIN_HANDLED
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	for (new i = 1; i <= g_iMaxPlayers; i++)
 	{

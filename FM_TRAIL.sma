@@ -280,7 +280,7 @@ Handle_Trail(id, sArgs[], iPrintType)
 		
 		while (iColourIndexCount < MAX_PLAYER_TRAIL_COLOURS)
 		{
-			strbreak(sBuffer, sColourName, charsmax(sColourName), sBuffer,  charsmax(sBuffer))	
+			argbreak(sBuffer, sColourName, charsmax(sColourName), sBuffer,  charsmax(sBuffer))	
 			if (!sColourName[0])
 			{
 				break
@@ -508,7 +508,7 @@ CustomTrail(id, sArgs[], iPrintType)
 	
 	while (iValueCount < MAX_PLAYER_TRAIL_COLOURS * 3) // Load the R G & B values
 	{
-		strbreak(sBuffer, sColourValue, charsmax(sColourValue), sBuffer, charsmax(sBuffer))
+		argbreak(sBuffer, sColourValue, charsmax(sColourValue), sBuffer, charsmax(sBuffer))
 		if (!sColourValue[0])
 		{
 			break
@@ -578,7 +578,7 @@ public fm_SQLPlayerIdent(id, player_id)
 	}
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_iTrailMenuPos[id] = 0
 	g_iMenuTrailColourIndexCount[id] = 0
@@ -619,7 +619,7 @@ public Handle_SelectPlayerTrail(iFailState, Handle:hQuery, sError[], iError, Dat
 
 		while (iColourValueCount < MAX_PLAYER_TRAIL_COLOURS * 3) // Load all the RGB values up to the max colours
 		{
-			strbreak(sTrail, sColour, charsmax(sColour), sTrail, charsmax(sTrail))
+			argbreak(sTrail, sColour, charsmax(sColour), sTrail, charsmax(sTrail))
 			if (!sColour[0])
 			{
 				break

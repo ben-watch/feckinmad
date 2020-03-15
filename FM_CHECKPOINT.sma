@@ -246,7 +246,7 @@ public client_authorized(id)
 	LoadPlayerCheckData(id)
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	SavePlayerCheckData(id)
 	ResetPlayerCheckData(id)

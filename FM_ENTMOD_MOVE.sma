@@ -113,7 +113,7 @@ if (iToggleState == TS_GOING_UP || iToggleState == TS_GOING_DOWN)
 }
 */
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	StopMoving(id)
 }

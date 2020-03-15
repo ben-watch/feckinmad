@@ -226,7 +226,7 @@ ReadDefaultFiles()
 
 		if (file_exists(sConfigFile))
 		{
-			md5_file(sConfigFile, sHash)
+			hash_file(sConfigFile, Hash_Md5, sHash, charsmax(sHash))
 		}
 
 		if (!ReadDefaultListSorted(g_DefaultResourceList[i], sSortedFile, sHash))

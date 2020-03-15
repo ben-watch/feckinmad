@@ -359,7 +359,7 @@ RemoveTrail()
 }
 
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	RemoveKick(id) // Remove kicks this player has made
 

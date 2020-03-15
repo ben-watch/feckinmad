@@ -34,7 +34,7 @@ public Forward_SetClientListening(iReceiver, iSender, iListen)
 	return FMRES_IGNORED
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	for (new i = 0; i <= g_iMaxPlayers; i++)
 	{

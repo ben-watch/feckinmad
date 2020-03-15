@@ -79,7 +79,7 @@ public client_authorized(id)
 	}	
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	fm_ClearBanInfo(g_PlayerBanInfo[id])
 }
@@ -203,7 +203,7 @@ public Admin_Mute(id, iLevel, iCommand)
 	}
 
 	new sLength[64], sReason[MAX_REASON_LEN]
-	strbreak(sArgs, sLength, charsmax(sLength), sReason, charsmax(sReason))
+	argbreak(sArgs, sLength, charsmax(sLength), sReason, charsmax(sReason))
 
 	if (!is_str_num2(sLength))
 	{

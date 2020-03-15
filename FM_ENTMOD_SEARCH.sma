@@ -47,7 +47,7 @@ public Player_EntSearch(id, iLevel, iCommand)
 	}
 
 	new sBuffer[128]; read_args(sBuffer, charsmax(sBuffer))
-	new sArg1[32], sArg2[128]; strbreak(sBuffer, sArg1, charsmax(sArg1), sArg2, charsmax(sArg2))
+	new sArg1[32], sArg2[128]; argbreak(sBuffer, sArg1, charsmax(sArg1), sArg2, charsmax(sArg2))
 
 	new iEnt, iCount, sClassname[32]
 	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, sArg1, sArg2)) > 0)

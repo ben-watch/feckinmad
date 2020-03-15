@@ -115,7 +115,7 @@ public client_putinserver(id)
 	g_fPlayerLastDetected[id] = get_gametime()
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_fPlayerLastDetected[id] = 0.0
 	g_iPlayerAway[id] = 0

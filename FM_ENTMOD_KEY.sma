@@ -82,7 +82,7 @@ public Player_EntSetKey(id)
 
 	new sBuffer[255]; read_args(sBuffer, charsmax(sBuffer))
 
-	new sArg1[8]; strbreak(sBuffer, sArg1, charsmax(sArg1), sBuffer, charsmax(sBuffer))
+	new sArg1[8]; argbreak(sBuffer, sArg1, charsmax(sArg1), sBuffer, charsmax(sBuffer))
 	new iEnt = fm_CommandGetEntity(id, sArg1)
 	if (!iEnt || !fm_CommandCheckEntity(id, iEnt, ENTCMD_MODIFY)) 
 	{
@@ -90,7 +90,7 @@ public Player_EntSetKey(id)
 	}
 
 	new sArg2[32], sArg3[128]
-	strbreak(sBuffer, sArg2, charsmax(sArg2), sArg3, charsmax(sArg3))
+	argbreak(sBuffer, sArg2, charsmax(sArg2), sArg3, charsmax(sArg3))
 
 	if (!sArg2[0])
 	{

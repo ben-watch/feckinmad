@@ -554,7 +554,7 @@ DisplayLeadingMaps(id = 0)
 }
 
 
-public client_disconnect(id)
+public client_disconnected(id)
 	g_iCurrentEnt[id] = -1
 
 public PanelTakeDamagePost(iEnt, iInflictor, iAttacker, Float:fDamage, iDmgType)

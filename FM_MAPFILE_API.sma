@@ -53,7 +53,8 @@ ReadMapSortedFile()
 	new sMapConfigPath[128], sHash[34], sSavedHash[34]
 
 	fm_BuildAMXFilePath(g_sMapConfigFile, sMapConfigPath, charsmax(sMapConfigPath), "amxx_configsdir")
-	md5_file(sMapConfigPath, sHash)
+	hash_file(sMapConfigPath, Hash_Md5, sHash, charsmax(sHash))
+
 	fread_blocks(iFileHandle, sSavedHash, sizeof(sHash), BLOCK_CHAR)
 	
 	if (!equal(sSavedHash, sHash))
@@ -203,7 +204,7 @@ WriteMapSortedFile()
 	//----------------------------------------------------------------------------------------------------
 
 	new sMapConfigPath[128]; fm_BuildAMXFilePath(g_sMapConfigFile, sMapConfigPath, charsmax(sMapConfigPath), "amxx_configsdir")
-	new sHash[34]; md5_file(sMapConfigPath, sHash)
+	new sHash[34]; hash_file(sMapConfigPath, Hash_Md5, sHash, charsmax(sHash))
 	fwrite_blocks(iFileHandle, sHash, sizeof(sHash), BLOCK_CHAR)
 
 	//----------------------------------------------------------------------------------------------------

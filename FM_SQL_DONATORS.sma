@@ -210,7 +210,7 @@ GetPlayerDonation(id)
 	return 0
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_iPlayerDonation[id] = -1
 }

@@ -184,7 +184,7 @@ Handle_Glow(id, sArgs[], iPrintType)
 		
 		while (iColourIndexCount < MAX_PLAYER_GLOW_COLOURS)
 		{
-			strbreak(sBuffer, sColourName, charsmax(sColourName), sBuffer,  charsmax(sBuffer))	
+			argbreak(sBuffer, sColourName, charsmax(sColourName), sBuffer,  charsmax(sBuffer))	
 			if (!sColourName[0])
 			{
 				break
@@ -398,7 +398,7 @@ CustomGlow(id, sArgs[], iPrintType)
 	
 	while (iValueCount < MAX_PLAYER_GLOW_COLOURS * 3) // Load the R G & B values
 	{
-		strbreak(sBuffer, sColourValue, charsmax(sColourValue), sBuffer, charsmax(sBuffer))
+		argbreak(sBuffer, sColourValue, charsmax(sColourValue), sBuffer, charsmax(sBuffer))
 		if (!sColourValue[0])
 		{
 			break
@@ -468,7 +468,7 @@ public fm_SQLPlayerIdent(id, player_id)
 	}
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_iGlowMenuPos[id] = 0
 	g_iMenuGlowColourIndexCount[id] = 0
@@ -507,7 +507,7 @@ public Handle_SelectPlayerGlow(iFailState, Handle:hQuery, sError[], iError, Data
 
 		while (iColourValueCount < MAX_PLAYER_GLOW_COLOURS * 3) // Load all the RGB values up to the max colours
 		{
-			strbreak(sGlow, sColour, charsmax(sColour), sGlow, charsmax(sGlow))
+			argbreak(sGlow, sColour, charsmax(sColour), sGlow, charsmax(sGlow))
 			if (!sColour[0])
 			{
 				break

@@ -93,7 +93,7 @@ public fm_PlayerStoppedSpeedRunning(id, iTime)
 	RemoveClock(id)
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	RemoveClock(id)
 }

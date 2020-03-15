@@ -159,7 +159,7 @@ CachePlayerIdent(id, iPlayerIdent)
 	}
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	if (g_iPlayerQuery[id])
 	{

@@ -1,4 +1,4 @@
-#include "feckinmad/fm"
+#include "feckinmad/fm_global"
 #include "feckinmad/fm_mapfile_api" // fm_GetMapNameByIndex(), fm_GetMapCount()
 #include "feckinmad/mapvote/fm_mapvote_nominate" // fm_NominateMap()
 #include "feckinmad/mapvote/fm_mapvote_mapmenu" // g_sMapMenuLibrary

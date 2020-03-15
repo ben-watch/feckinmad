@@ -1,4 +1,4 @@
-#include "feckinmad/fm"
+#include "feckinmad/fm_global"
 #include "feckinmad/fm_mapfile_api"
 #include "feckinmad/mapvote/fm_mapvote_mapmenu"
 
@@ -391,7 +391,7 @@ public Handle_Say(id)
 	return PLUGIN_CONTINUE
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_fPlayerNextNomination[id] = 0.0
 

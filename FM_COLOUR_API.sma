@@ -47,12 +47,12 @@ ReadColourFile()
 			break
 		}	
 	
-		strbreak(sData, g_sColourList[g_iColourNum], MAX_COLOUR_NAME_LEN - 1, sData, charsmax(sData)) // Store the colour name
+		argbreak(sData, g_sColourList[g_iColourNum], MAX_COLOUR_NAME_LEN - 1, sData, charsmax(sData)) // Store the colour name
 
 		iValueCount = sColourValue[0] = 0
 		while (iValueCount < 3) // Load the R G & B values
 		{
-			strbreak(sData, sColourValue, charsmax(sColourValue), sData, charsmax(sData))
+			argbreak(sData, sColourValue, charsmax(sColourValue), sData, charsmax(sData))
 
 			if (!sColourValue[0])
 			{

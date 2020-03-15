@@ -163,7 +163,7 @@ UnregisterKeyValueForward()
 CheckPlayerDonation(id)
 	return fm_GetPlayerDonation(id) >= DONATION_AMOUNT ? true : false
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_bPlayerShowGolden[id] = true
 	g_fPlayerNextChange[id] = 0.0

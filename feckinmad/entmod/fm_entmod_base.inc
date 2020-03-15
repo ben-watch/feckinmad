@@ -81,7 +81,7 @@ stock fm_GetCachedEntKeyVector(iEnt, const sKey[], Float:fValue[3])
 	{
 		for (new i = 0; i < 3; i++)
 		{
-			strbreak(sValue, sBuffer, charsmax(sBuffer), sValue, charsmax(sValue))
+			argbreak(sValue, sBuffer, charsmax(sBuffer), sValue, charsmax(sValue))
 			if (sBuffer[0])
 				fValue[i] = floatstr(sBuffer)	
 		}

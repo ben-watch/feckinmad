@@ -223,7 +223,7 @@ public plugin_end()
 	g_bPluginEnd = true
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_iPlayerMenuModel[id] = 0
 	g_iPlayerMenuSkin[id] = 0
@@ -553,7 +553,7 @@ Handle_Model(id, sArgs[], iPrintType)
 
 	new iModel, iSkin
 	new sModel[MAX_MODEL_NAME_LEN], sSkin[8]
-	strbreak(sArgs, sModel, charsmax(sModel), sSkin, charsmax(sSkin))
+	argbreak(sArgs, sModel, charsmax(sModel), sSkin, charsmax(sSkin))
 
 	if (equali(sArgs, "off") || equali(sArgs, "stop") || equali(sArgs, "default") || equali(sArgs, "none"))
 	{

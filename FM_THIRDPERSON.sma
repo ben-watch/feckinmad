@@ -55,7 +55,7 @@ public Thirdperson(id)
 	return PLUGIN_HANDLED
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_bPlayerThirdperson[id] = false
 	g_fNextChange[id] = 0.0

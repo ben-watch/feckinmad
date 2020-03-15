@@ -56,7 +56,7 @@ public Handle_Say(id)
 	return PLUGIN_CONTINUE
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_fPlayerNextChat[id] = 0.0
 	g_iPlayerLineCount[id] = 0	

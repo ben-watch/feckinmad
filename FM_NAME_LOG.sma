@@ -294,7 +294,7 @@ public Forward_ClientUserInfoChanged(id, Buffer)
 // Reset player name change time on disconnect
 //----------------------------------------------------------------------------------------------------
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	g_fPlayerNextNameChange[id] = 0.0
 }

@@ -29,7 +29,7 @@ public plugin_init()
 	g_iMaxPlayers = get_maxplayers()
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	if (g_bPlayerAttemptedToRock[id])
 	{
