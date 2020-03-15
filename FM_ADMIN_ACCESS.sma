@@ -56,7 +56,7 @@ public Admin_Refresh(id)
 
 	console_print(id, "Attempting to refresh your admin")
 	g_fPlayerNextAdminRefresh[id] = fGameTime + 10.0
-	client_authorized(id)
+	ClientAuthorized(id)
 
 	return PLUGIN_HANDLED
 }
@@ -76,7 +76,7 @@ public fm_AdminInfoUpdated()
 	{
 		if (is_user_connected(i) || is_user_connecting(i)) 
 		{
-			client_authorized(i)
+			ClientAuthorized(i)
 		}
 	}
 }
@@ -87,6 +87,11 @@ public client_connect(id)
 }
 
 public client_authorized(id)
+{
+	ClientAuthorized(id)
+}
+
+ClientAuthorized(id)
 {
 	arrayset(g_PlayerAdminInfo[id], 0, eAdmin_t)
 
@@ -125,7 +130,7 @@ public client_authorized(id)
 	}	
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	if (g_PlayerAdminInfo[id][m_iAdminAccess] > 0)
 	{

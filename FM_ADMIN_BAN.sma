@@ -169,7 +169,7 @@ public Admin_Ban(id, iLevel, iCommand)
 	}
 
 	new sArgs[192], sTarget[64]; read_args(sArgs, charsmax(sArgs)) 
-	strbreak(sArgs, sTarget, charsmax(sTarget), sArgs, charsmax(sArgs))
+	argbreak(sArgs, sTarget, charsmax(sTarget), sArgs, charsmax(sArgs))
 
 	new BanInfo[eBanInfo_t]
 
@@ -219,7 +219,7 @@ public Admin_Ban(id, iLevel, iCommand)
 	}
 
 	new sLength[128]
-	strbreak(sArgs, sLength, charsmax(sLength), BanInfo[m_sBanReason], MAX_REASON_LEN - 1)
+	argbreak(sArgs, sLength, charsmax(sLength), BanInfo[m_sBanReason], MAX_REASON_LEN - 1)
 
 	trim(BanInfo[m_sBanReason])
 	if (!BanInfo[m_sBanReason][0])

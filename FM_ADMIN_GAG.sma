@@ -124,7 +124,7 @@ public client_authorized(id)
 	fm_GetBanInfoByAuth(g_GagList, sAuthId, g_PlayerBanInfo[id])
 }
 
-public client_disconnect(id)
+public client_disconnected(id)
 {
 	fm_ClearBanInfo(g_PlayerBanInfo[id])
 }
@@ -219,7 +219,7 @@ public Admin_Gag(id, iLevel, iCommand)
 		return PLUGIN_HANDLED
 
 	new sTarget[64], sArgs[192]; read_args(sArgs, charsmax(sArgs)) 
-	strbreak(sArgs, sTarget, charsmax(sTarget), sArgs, charsmax(sArgs))
+	argbreak(sArgs, sTarget, charsmax(sTarget), sArgs, charsmax(sArgs))
 
 	new iPlayer = fm_CommandGetPlayer(id, sTarget)
 	if (!iPlayer)
@@ -246,7 +246,8 @@ public Admin_Gag(id, iLevel, iCommand)
 	}
 
 	new sLength[64], sReason[MAX_REASON_LEN]
-	strbreak(sArgs, sLength, charsmax(sLength), sReason, charsmax(sReason))
+	argbreak(sArgs, sLength, charsmax(sLength), sReason, charsmax(sReason)) // Depreciated, thanks for the heads up DarthMan
+	//argbreak(sArgs, sLength, charsmax(sLength), sReason, charsmax(sReason)) 
 
 	if (!is_str_num2(sLength))
 	{

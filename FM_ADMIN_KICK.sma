@@ -17,7 +17,7 @@ public Admin_Kick(id, iLevel, iCommand)
 		
 	new sArgs[192]; read_args(sArgs, charsmax(sArgs))	
 	new sTarget[32], sReason[128]
-	strbreak(sArgs, sTarget, charsmax(sTarget), sReason, charsmax(sReason))
+	argbreak(sArgs, sTarget, charsmax(sTarget), sReason, charsmax(sReason))
 	
 	new iPlayer = fm_CommandGetPlayer(id, sTarget)
 	if (!iPlayer || !fm_CommandCheckPlayer(id, iPlayer, CMD_PLAYER_DENY_SELF))

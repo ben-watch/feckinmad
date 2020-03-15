@@ -176,7 +176,7 @@ public Admin_Mute(id, iLevel, iCommand)
 		return PLUGIN_HANDLED
 
 	new sTarget[64], sArgs[192]; read_args(sArgs, charsmax(sArgs)) 
-	strbreak(sArgs, sTarget, charsmax(sTarget), sArgs, charsmax(sArgs))
+	argbreak(sArgs, sTarget, charsmax(sTarget), sArgs, charsmax(sArgs))
 
 	new iPlayer = fm_CommandGetPlayer(id, sTarget)
 	if (!iPlayer)
