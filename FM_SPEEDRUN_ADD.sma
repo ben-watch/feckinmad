@@ -47,13 +47,14 @@ public fm_PlayerStoppedSpeedRunning(id, iTime)
 
 	new sName[MAX_NAME_LEN]; get_user_name(id, sName, charsmax(sName))
 	new CurrentRank[eSpeedTop_t], iRank = fm_GetSpeedRunRankByIdent(iPlayerIdent, CurrentRank)
+	new Data[2]; Data[0] = iPlayerIdent
 
 	// Check if they are ranked
 	if (!iRank)
 	{
 		// Insert the run into the SQL db
 		formatex(g_sQuery, charsmax(g_sQuery), "INSERT INTO speedruns (map_id, player_id, speedrun_time, speedrun_timestamp) VALUES (%d, %d, %d, UNIX_TIMESTAMP())", iMapIdent, iPlayerIdent, iTime)
-		fm_SQLAddThreadedQuery(g_sQuery, "Handle_InsertSpeedrun", QUERY_NOT_DISPOSABLE, PRIORITY_HIGH)
+		fm_SQLAddThreadedQuery(g_sQuery, "Handle_InsertSpeedrun", QUERY_NOT_DISPOSABLE, PRIORITY_HIGH, Data, sizeof(Data))
 	}
 	else // They are already ranked
 	{	
@@ -68,18 +69,19 @@ public fm_PlayerStoppedSpeedRunning(id, iTime)
 
 			// Update the SQL db
 			formatex(g_sQuery, charsmax(g_sQuery), "UPDATE speedruns SET speedrun_time = '%d', speedrun_timestamp = UNIX_TIMESTAMP() WHERE player_id = '%d' AND map_id = '%d';", iTime, iPlayerIdent, iMapIdent)
-			fm_SQLAddThreadedQuery(g_sQuery, "Handle_UpdateSpeedrun", QUERY_NOT_DISPOSABLE, PRIORITY_HIGH)
+			fm_SQLAddThreadedQuery(g_sQuery, "Handle_UpdateSpeedrun", QUERY_NOT_DISPOSABLE, PRIORITY_HIGH, Data, sizeof(Data))
 		}
 		else // They didn't beat it. Oh well, print their failure!
 		{
 			fm_SpeedRunTimeToText(iTime - CurrentRank[m_iTopTime], sTimeDiff, charsmax(sTimeDiff), 1)
-			client_print(0, print_chat, "* \"%s\" failed to beat their previous speedrun of %s by %s", sName, sPreviousTime, sTimeDiff)
+			client_print(0, print_chat, "* \"%s\" failed to beat their previous speedrun %s by %s", sName, sPreviousTime, sTimeDiff)
 		}
 	}
+
 	return PLUGIN_CONTINUE
 }
 
-public Handle_InsertSpeedrun(iFailState, Handle:hQuery, sError[], iError, sData[], iLen, Float:fQueueTime)
+public Handle_InsertSpeedrun(iFailState, Handle:hQuery, sError[], iError, Data[], iLen, Float:fQueueTime)
 {
 	fm_DebugPrintLevel(1, "Handle_InsertSpeedrun: %f", fQueueTime)
 
@@ -94,12 +96,12 @@ public Handle_InsertSpeedrun(iFailState, Handle:hQuery, sError[], iError, sData[
 		//log_error_here
 	}
 
-	fm_ReloadSpeedRunData() // Tell FM_SPEEDRUN_TOP.amxx to reload the ranks
+	fm_ReloadSpeedRunData(Data[0]) // Tell FM_SPEEDRUN_TOP.amxx to reload the ranks & announce the player rank who completed
 
 	return PLUGIN_HANDLED
 }
 
-public Handle_UpdateSpeedrun(iFailState, Handle:hQuery, sError[], iError, sData[], iLen, Float:fQueueTime)
+public Handle_UpdateSpeedrun(iFailState, Handle:hQuery, sError[], iError, Data[], iLen, Float:fQueueTime)
 {
 	fm_DebugPrintLevel(1, "Handle_UpdateSpeedrun: %f", fQueueTime)
 
@@ -114,7 +116,7 @@ public Handle_UpdateSpeedrun(iFailState, Handle:hQuery, sError[], iError, sData[
 		//log_error_here
 	}
 
-	fm_ReloadSpeedRunData() // Tell FM_SPEEDRUN_TOP.amxx to reload the ranks
+	fm_ReloadSpeedRunData(Data[0]) // Tell FM_SPEEDRUN_TOP.amxx to reload the ranks & announce the player rank who completed
 
 	return PLUGIN_HANDLED
 }

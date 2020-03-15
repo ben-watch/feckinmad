@@ -6,7 +6,7 @@
 
 #define CLOCK_UPDATE_FREQUENCY 1.0
 
-new const g_sClockModel[] = "models/fm/fm_stopwatch3.mdl" 
+new const g_sClockModel[] = "models/fm/speedrun/fm_stopwatch.mdl" 
 new g_iPlayerClockEnt[MAX_PLAYERS + 1], g_iMaxPlayers
 
 public plugin_precache()

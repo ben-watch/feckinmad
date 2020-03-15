@@ -3,7 +3,7 @@
 
 #include <fakemeta>
 
-new bool:g_iSpeedRunningStatus
+new bool:g_bSpeedRunningStatus
 
 new bool:g_bPlayerSpeedrunning[MAX_PLAYERS + 1] 
 new Float:g_fPlayerStartTime[MAX_PLAYERS + 1] // Gametime the player started the speedrun
@@ -65,6 +65,8 @@ public Native_ReadyToSpeedRun(iPlugin, iParams)
 	iForward = CreateMultiForward("fm_InitSpeedRunning", ET_IGNORE)
 	ExecuteForward(iForward, iReturn)
 
+	g_bSpeedRunningStatus = true
+
 	return 1
 }
 
@@ -75,7 +77,7 @@ public fm_InitSpeedRunning()
 
 public Native_GetSpeedRunStatus(iPlugin, iParams)
 {
-	return g_iSpeedRunningStatus
+	return g_bSpeedRunningStatus
 }
 
 public Native_StartSpeedRunning(iPlugin, iParams)

@@ -36,7 +36,7 @@ public fm_CanEnableSpeedRun()
 
 	if (g_iTopCount == -1)
 	{
-		return PLUGIN_HANDLED // Return plugin handled. This plugin is ready to speedrun yet!
+		return PLUGIN_HANDLED // Return plugin handled. This plugin is not ready to speedrun yet!
 	}
 	return PLUGIN_CONTINUE
 }
@@ -48,13 +48,14 @@ public fm_SQLMapIdent(iMapIdent)
 	LoadSpeedRunData()
 }
 
-LoadSpeedRunData()
+LoadSpeedRunData(iPlayerIdent = 0)
 {
+	new Data[2]; Data[0] = iPlayerIdent
 	formatex(g_sQuery, charsmax(g_sQuery), "SELECT speedruns.player_id, player_common_name, player_authid, speedrun_time FROM speedruns, maps, players WHERE speedruns.map_id = maps.map_id AND speedruns.player_id = players.player_id AND speedruns.map_id = '%d' ORDER BY speedrun_time;", g_iMapIdent)
-	fm_SQLAddThreadedQuery(g_sQuery, "Handle_SelectTop", QUERY_DISPOSABLE, PRIORITY_HIGHEST)
+	fm_SQLAddThreadedQuery(g_sQuery, "Handle_SelectTop", QUERY_DISPOSABLE, PRIORITY_HIGHEST, Data, sizeof(Data))
 }
 
-public Handle_SelectTop(iFailState, Handle:hQuery, sError[], iError, sData[], iLen, Float:fQueueTime, iQueryIdent)
+public Handle_SelectTop(iFailState, Handle:hQuery, sError[], iError, Data[], iLen, Float:fQueueTime, iQueryIdent)
 {
 	fm_DebugPrintLevel(1, "Handle_SelectTop: %f", fQueueTime)
 
@@ -80,13 +81,26 @@ public Handle_SelectTop(iFailState, Handle:hQuery, sError[], iError, sData[], iL
 			
 		SQL_NextRow(hQuery)
 	}
+
 	log_amx("Loaded %d speedruns from database", g_iTopCount)
 
-	fm_ReadyToSpeedRun() // Tell FM_SPEEDRUN_API that we are ready to speedrun. It will forward to the other plugins to check if they are ready.
-	
+	// Announce rank of a certain player ident
+	new iPlayerIdent = Data[0]
+	if (iPlayerIdent != 0)
+	{
+		new Buffer[eSpeedTop_t]
+		new iRank = GetSpeedRunRankByPlayerIdent(iPlayerIdent, Buffer)	
+		client_print(0, print_chat, "* \"%s\" is now ranked #%d on the currentmap", Buffer[m_sTopPlayerName], iRank)
+	}
+
+	// Tell FM_SPEEDRUN_API that we are ready to speedrun. It will forward to the other plugins to check if they are ready.
+	if (!fm_GetSpeedRunStatus())
+	{
+		fm_ReadyToSpeedRun() 
+	}
+
 	return PLUGIN_HANDLED
 }
-
 
 public ShowTop(id, iStart)
 { 
@@ -135,13 +149,11 @@ public Handle_Say(id)
 
 	if (equali(sArgs, "/rank"))
 	{
-
-		//switch (fm_GetSpeedRunStatus(id))
-		//{
-		//	case STATUS_SPEEDRUN_DISABLED: client_print(0, print_chat, "* Speedrunning is not enabled on the currentmap", sName, iRank, g_iTopCount, sTime)
-		//	case STATUS_SPEEDRUN_LOADING:
-		//	return PLUGIN_CONTINUE
-		//}
+		if (!fm_GetSpeedRunStatus())
+		{
+			client_print(id, print_chat, "* Speedrunning is not active on the currentmap")
+			return PLUGIN_HANDLED
+		}
 
 		new sName[MAX_NAME_LEN]; get_user_name(id, sName, charsmax(sName))
 
@@ -154,7 +166,6 @@ public Handle_Say(id)
 		
 		new Buffer[eSpeedTop_t]
 		new iRank = GetSpeedRunRankByPlayerIdent(iPlayerIdent, Buffer)
-
 
 		if (!iRank)
 		{
@@ -169,9 +180,11 @@ public Handle_Say(id)
 	}
 	else if (equali(sArgs, "/top", 4)) 
 	{
-		// Check if speedrunning is enabled here
-		//if (fm_GetSpeedRunStatus() == )
-		//	return PLUGIN_HANDLED
+		if (!fm_GetSpeedRunStatus())
+		{
+			client_print(id, print_chat, "* Speedrunning is not active on the currentmap")
+			return PLUGIN_HANDLED
+		}
 				
 		if (sArgs[4] == ' ')
 		{
@@ -242,7 +255,8 @@ public plugin_natives()
 
 public Native_ReloadSpeedRunData(iPlugin, iParams)
 {
-	LoadSpeedRunData()
+	new id = get_param(1)
+	LoadSpeedRunData(id)
 }
 
 public Native_GetSpeedRunTotal(iPlugin, iParams)
@@ -283,82 +297,3 @@ public Native_GetSpeedRunRankByTime(iPlugin, iParams)
 	new iTime = get_param(1)
 	return GetSpeedRunRankByTime(iTime)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*	while(g_iPlayerCachedCurrentRank[id] < g_iTopCount && (iTime > g_iPlayerCachedCurrentTime[id] || g_iPlayerCachedCurrentTime[id] == -1))
-	{
-		ArrayGetArray(g_TopList, g_iPlayerCachedCurrentRank[id], Buffer)
-		g_iPlayerCachedCurrentTime[id] = Buffer[m_iTopTime]
-		g_iPlayerCachedCurrentRank[id]++
-	}
-	return g_iPlayerCachedCurrentRank[id]*/
-
-
-/*public fm_SQLPlayerIdent(id, iPlayerIdent)
-{
-	fm_DebugPrintLevel(1, "fm_SQLPlayerIdent(%d, %d)", id, iPlayerIdent)
-
-	//if (g_iSpeedStatus != STATUS_SPEED_ENABLED)
-	//	return PLUGIN_CONTINUE		
-		
-	new Buffer[eSpeedTop_t]
-	for (new i = 0; i < g_iTopCount; i++)
-	{
-		ArrayGetArray(g_TopList, i, Buffer)
-		if (Buffer[m_iTopPlayerIdent] == iPlayerIdent)
-		{
-			g_iPlayerCachedCurrentRank[id] = i + 1
-			g_iPlayerCachedCurrentTime[id] = TopInfo[m_iTopTime]
-		}
-	}	
-}
-
-// Cached info on the active players best speedrun entry
-//new g_iPlayerCachedCurrentRank[MAX_PLAYERS + 1]
-//new g_iPlayerCachedCurrentTime[MAX_PLAYERS + 1] = { -1, ... }
-
-
-ClearRankCache()
-{
-	for (new i = 1; i <= g_iMaxPlayers; i++)
-	{
-		// Clear players current rank 
-		g_iPlayerCachedCurrentRank[i] = 0
-		g_iPlayerCachedCurrentTime[i] = -1
-	}
-
-	ArrayClear(g_TopList)
-	g_iTopCount = 0
-}*/
-
-
-
-
-
-
-
-
-
-		/*
-		// Do we want to announce the rank of someone
-		if (g_iDisplayRankTarget && g_iDisplayRankIdent == iPlayerIdent)
-		{
-			new sName[MAX_NAME_LEN]; get_user_name(g_iDisplayRankTarget, sName, charsmax(sName)) 
-			client_print(0, print_chat, "* \"%s\" is ranked %d/%d in the speedruns for %s", sName, g_iSpeedCount + 1, iCount, g_sCurrentmap)
-		}*/
-
-
-//	g_iDisplayRankTarget = 0
-//	g_iDisplayRankIdent = 0

@@ -13,8 +13,7 @@ enum eSpeedTop_t
 	m_iTopTime
 }
 
-
-native fm_ReloadSpeedRunData() // Reloads the rank data from the database
+native fm_ReloadSpeedRunData(iPlayerIdent = 0) // Reloads the rank data from the database. Ident to announce rank
 native fm_GetSpeedRunRankByIdent(iIdent, Buffer[eSpeedTop_t]) // Get the speedrun data by player ident
 native fm_GetSpeedRunRankByTime(iTime) // Gets the rank of the current player if they were to finish with the specified time
 native fm_GetSpeedRunTotal() // Get total speedruns

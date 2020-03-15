@@ -1,4 +1,6 @@
-
+#include "feckinmad/fm_global"
+#include "feckinmad/fm_sql_tquery"
+#include "feckinmad/fm_speedrun_api"
 #include "feckinmad/fm_sql_player"
 
 enum eQueryData_t

@@ -11,7 +11,7 @@
 
 new bool:g_bPlayerSpeedRunning[MAX_PLAYERS] // Local cache of speedrunning status
 
-new const g_sFlagModel[] = "models/fm/speedrun/flag_hires.mdl"
+new const g_sFlagModel[] = "models/fm/speedrun/fm_flag_hires.mdl"
 new const g_sFlagQuery[] = "SELECT load_flags, startflag_x, startflag_y, startflag_z, endflag_x, endflag_y, endflag_z FROM maps WHERE map_id = %d LIMIT 1;"
 enum
 {
@@ -115,7 +115,7 @@ public fm_CanEnableSpeedRun()
 	
 	if (!g_iStartFlagEnt || !g_iEndFlagEnt)
 	{
-		return PLUGIN_HANDLED // Return plugin handled. This plugin is ready to speedrun yet!
+		return PLUGIN_HANDLED // Return plugin handled. This plugin is not ready to speedrun yet!
 	}
 	return PLUGIN_CONTINUE
 }
@@ -161,7 +161,6 @@ CreateFlag(iSkin, Float:fOrigin[3])
 
 	return iEnt
 }
-
 
 public fm_PlayerStoppedSpeedRunning(id, iTime)
 {
@@ -223,7 +222,6 @@ public Forward_Touch(iEnt, id)
 	}
 	return FMRES_IGNORED
 }
-
 
 public Admin_Flag(id, iLevel, iCommand)
 {
@@ -320,8 +318,7 @@ public Handle_UpdateFlags(iFailState, Handle:hQuery, sError[], iError, sData[], 
 	else
 	{
 		client_print(0, print_chat, "* Speedrun flags have been added to the map")	
-		fm_ReadyToSpeedRun()  // Tell FM_SPEEDRUN_API that we are ready to speedrun. It will forward to the other plugins to check if they are ready.
-		
+		fm_ReadyToSpeedRun()  // Tell FM_SPEEDRUN_API that we are ready to speedrun. It will forward to the other plugins to check if they are ready.	
 	}
 	
 	return PLUGIN_CONTINUE

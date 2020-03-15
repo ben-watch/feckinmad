@@ -9,7 +9,6 @@
 new g_iEnt, g_iMaxPlayers, g_iStatusMsgId
 new bool:g_bPlayerSpeedRunning[MAX_PLAYERS + 1] // Local cache of speedrunning status
 
-
 public plugin_init()
 {
 	fm_RegisterPlugin()
@@ -55,7 +54,6 @@ public fm_PlayerStartedSpeedRunning(id)
 	g_bPlayerSpeedRunning[id] = true
 }
 
-
 public Forward_Think(iEnt)
 {
 	if (iEnt != g_iEnt)
@@ -65,14 +63,12 @@ public Forward_Think(iEnt)
 
 	for (new i = 1; i <= g_iMaxPlayers; i++)
 	{
-
 		if (!g_bPlayerSpeedRunning[i])
 		{
 			continue
 		}
 
 		new iCurrentTime = fm_GetUserSpeedRunTime(i)
-		
 		static sMessage[64]
 
 		new iHuns = iCurrentTime % 100

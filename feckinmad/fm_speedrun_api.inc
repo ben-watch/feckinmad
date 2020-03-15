@@ -15,7 +15,7 @@ enum
 	STATUS_SPEEDRUN_ENABLED
 }
 
-native fm_GetSpeedRunStatus(id)
+native fm_GetSpeedRunStatus()
 native fm_ReadyToSpeedRun() 
 native fm_IsUserSpeedRunning(id)
 native fm_GetUserSpeedRunTime(id)
