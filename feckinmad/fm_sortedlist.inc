@@ -18,6 +18,17 @@ stock fm_InsertIntoSortedList(Array:aList, sString[], iCaseSensitive = 0)
 	return 1
 }
 
+fm_RemoveFromSortedList(Array:aList, sString[])
+{
+	new iIndex = fm_BinarySearch(aList, sString, 0, ArraySize(aList))
+	if (iIndex != -1)
+	{
+		ArrayDeleteItem(aList, iIndex)
+		return 1
+	}
+	return 0
+}
+
 fm_BinarySearch(Array:aList, sString[], iLow, iHigh, iCaseSensitive = 0)
 {
 	static sBuffer[1024]
