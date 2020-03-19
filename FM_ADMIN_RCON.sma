@@ -4,7 +4,7 @@
 public plugin_init()
 {
 	fm_RegisterPlugin()
-	register_concmd("admin_rcon","Admin_Rcon", 0, "<command>")
+	register_concmd("admin_rcon","Admin_Rcon", ADMIN_ADMIN, "<command>")
 }
 
 public Admin_Rcon(id, iLevel, iCommand)
