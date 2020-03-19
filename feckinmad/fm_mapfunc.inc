@@ -24,11 +24,11 @@ stock fm_IsMapNameInFile(const sMap[], const sFile[], bool:bLogError = true)
 		fgets(iFileHandle, sData, charsmax(sData))
 		trim(sData)
 					
-		if (!fm_Comment(sData) && equali(sMap, sData))
+		if (!fm_Comment(sData) && (equal(sData, "*") || equali(sMap, sData)))
 		{
 			bReturn = true
 			break
-		}		
+		}
 	}
 	fclose(iFileHandle)
 	return bReturn
