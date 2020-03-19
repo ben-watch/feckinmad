@@ -44,8 +44,9 @@ public plugin_cfg()
 
 // -------------------------------------------------------------------------------------------------------------
 // Execute fm.cfg on the player shortly after they connect for any fm specific binds / cvars they want
+// 19/03/20 - Commented out. It's no longer possible to exec on clients.
 // -------------------------------------------------------------------------------------------------------------
-public client_putinserver(id)
+/*public client_putinserver(id)
 {
 	set_task(1.0, "ExecPlayerConfig", id)
 }
@@ -56,4 +57,4 @@ public ExecPlayerConfig(id)
 	{
 		client_cmd(id, "exec \"%s\"", g_sConfigFile)
 	}
-}
+}*/
