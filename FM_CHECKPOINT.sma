@@ -3,6 +3,7 @@
 #include "feckinmad/fm_precache"
 #include "feckinmad/fm_time"
 #include "feckinmad/fm_mapfunc"
+#include "feckinmad/fm_speedrun_api"
 
 #include <fakemeta> 
 #include <hamsandwich>
@@ -10,8 +11,8 @@
 #define MAX_LAST_CHECKS 8
 #define MAX_STATUSTEXT_LENGTH 128 // hud.h
 
-new const Float:g_fLoadDelay = 10.0
-new const Float:g_fSaveDelayMuliplier = 3.0
+new const Float:g_fLoadDelay = 1.0
+new const Float:g_fSaveDelayMuliplier = 1.0
 new const Float:g_fHUDRefreshRate = 0.11
 
 new const g_sCheckMapsFile[] = "fm_checkpoint_maps.ini"
@@ -25,6 +26,9 @@ new const g_sTextEnable[] = "enabled"
 new const g_sTextDisable[] = "disabled"
 
 new bool:g_bCheckAllow
+new bool:g_bSpeedRunPluginExists
+new const g_sSpeedRunErrorMessage[] = "* You can't load a checkpoint whilst speedrunning. Type /stop to cancel your speedurun"
+
 new g_sCheckHelpPath[128]
 
 new Float:g_fPlayerCheckOrigin[MAX_PLAYERS+ 1][MAX_LAST_CHECKS][3]
@@ -98,6 +102,11 @@ public plugin_init()
 	{
 		register_concmd("admin_checkpoint", "Admin_Checkpoint", ADMIN_HIGHER)
 	}
+
+	if (LibraryExists(g_sSpeedRunAPILibName, LibType_Library))
+	{
+		g_bSpeedRunPluginExists = true
+	}
 }
 
 
@@ -109,7 +118,7 @@ public plugin_natives()
 
 public Module_Filter(sModule[])
 {
-	if (equal(sModule, g_sAdminAccessLibName))
+	if (equal(sModule, g_sAdminAccessLibName) || equal(sModule, g_sSpeedRunAPILibName))
 	{
 		return PLUGIN_HANDLED
 	}
@@ -234,7 +243,6 @@ public PlayerTakeDamage(id, iInflictor, iAttacker, Float:fDamage, iDamageBits)
 	}
 	return HAM_IGNORED
 }	
-
 
 public client_connect(id)
 {
@@ -504,7 +512,7 @@ CheckSave(id)
 	pev(id, pev_origin,  g_fPlayerCheckOrigin[id][0])
 	pev(id, pev_v_angle, g_fPlayerCheckAim[id][0])	
 	
-	CheckEcho(id)
+	//CheckEcho(id)
 
 	new iFlags = pev(id, pev_flags)
 	if ((iFlags & FL_DUCKING) && (iFlags & FL_ONGROUND))
@@ -530,11 +538,17 @@ CheckLoad(id)
 		return PLUGIN_HANDLED
 	}
 
+	if (g_bSpeedRunPluginExists && fm_IsUserSpeedRunning(id))
+	{
+		client_print(id, print_chat, g_sSpeedRunErrorMessage)
+		fm_PlaySound(id, g_sCheckSound[SOUND_ERROR])
+		return PLUGIN_HANDLED	
+	}
+
 	if (!g_iPlayerSaveCount[id])
 	{
 		client_print(id, print_chat, "* You have not saved a checkpoint yet")
 		fm_PlaySound(id, g_sCheckSound[SOUND_ERROR])
-
 		return PLUGIN_HANDLED
 	}
 
@@ -548,7 +562,7 @@ CheckLoad(id)
 		return PLUGIN_HANDLED
 	}
 
-	CheckEcho(id)
+	//CheckEcho(id)
 	CheckTeleport(id)
 
 	return PLUGIN_CONTINUE
@@ -556,10 +570,16 @@ CheckLoad(id)
 
 CheckLast(id)
 {
-	
 	if (!CheckCommand(id))
 	{
 		return PLUGIN_HANDLED
+	}
+
+	if (g_bSpeedRunPluginExists && fm_IsUserSpeedRunning(id))
+	{
+		client_print(id, print_chat, g_sSpeedRunErrorMessage)
+		fm_PlaySound(id, g_sCheckSound[SOUND_ERROR])
+		return PLUGIN_HANDLED	
 	}
 
 	if (g_iPlayerLastCheckPos[id] >= MAX_LAST_CHECKS - 1)
@@ -599,12 +619,12 @@ CheckLast(id)
 
 	g_iPlayerLastCheckPos[id]++
 
-	CheckEcho(id)
+	//CheckEcho(id)
 	CheckTeleport(id)
 	return PLUGIN_HANDLED
 }
 
-
+/*
 CheckEcho(id)
 {
 	for (new i = 0; i < MAX_LAST_CHECKS; i++)
@@ -612,7 +632,7 @@ CheckEcho(id)
 		console_print(id, "#%d: %0.2f, %0.2f, %0.2f", i, g_fPlayerCheckOrigin[id][i][0], g_fPlayerCheckOrigin[id][i][1], g_fPlayerCheckOrigin[id][i][2])
 	}
 	console_print(id, "g_iPlayerLastCheckPos[id]: %d\n\n", g_iPlayerLastCheckPos[id])
-}
+}*/
 
 CheckTeleport(id)
 {
