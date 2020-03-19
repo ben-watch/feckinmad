@@ -30,8 +30,10 @@ new g_pCvarEnabled, g_pCvarAutoLoad
 new g_iPlayerQuery[MAX_PLAYERS + 1]
 new g_sQuery[256]
 
-public fm_PluginInit()
+public plugin_init()
 {
+	fm_RegisterPlugin()
+
 	g_pCvarEnabled = register_cvar("fm_glow_enabled", "1")
 	g_pCvarAutoLoad = register_cvar("fm_glow_autoload", "1")
 
