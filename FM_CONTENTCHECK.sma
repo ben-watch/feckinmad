@@ -9,6 +9,8 @@
 #define CACHE_AGE_RECHECK 60 * 60 * 24 * 90 // 90 Days
 
 new g_pCvarContentServer
+new g_pCvarLogSuccess
+
 new g_sMapDir[] = "maps/"
 new const g_sVaultName[] = "fm_contentcheck_cache"
 
@@ -38,6 +40,8 @@ public plugin_init()
 
 	get_mapname(g_sMap, charsmax(g_sMap))
 	fm_GetProperMapName(g_sMap)
+
+	g_pCvarLogSuccess = register_cvar("fm_contentcheck_logall", "0")
 
 	g_iCacheVault = nvault_open(g_sVaultName)
 	if (g_iCacheVault == INVALID_HANDLE)
@@ -193,10 +197,10 @@ CheckContent(iIndex)
 	}
 
 	static sBuffer[1024]
-	new iLen = formatex(sBuffer, charsmax(sBuffer), "GET /%s%s HTTP/1.1\n", g_sContentPath, sResource)
-	iLen += formatex(sBuffer[iLen], charsmax(sBuffer) - iLen, "Host: %s\n", g_sContentDomain)
-	iLen += formatex(sBuffer[iLen], charsmax(sBuffer) - iLen, "User-Agent: %s\n", g_sUserAgent)
-	iLen += formatex(sBuffer[iLen], charsmax(sBuffer) - iLen, "Connection: close\n\n")
+	new iLen = formatex(sBuffer, charsmax(sBuffer), "GET /%s%s HTTP/1.1\r\n", g_sContentPath, sResource)
+	iLen += formatex(sBuffer[iLen], charsmax(sBuffer) - iLen, "Host: %s\r\n", g_sContentDomain)
+	iLen += formatex(sBuffer[iLen], charsmax(sBuffer) - iLen, "User-Agent: %s\r\n", g_sUserAgent)
+	iLen += formatex(sBuffer[iLen], charsmax(sBuffer) - iLen, "Connection: close\r\n\r\n")
 
 	fm_DebugPrintLevel(2, "%s", sBuffer)
 	socket_send(iSocketHandle, sBuffer, strlen(sBuffer))
@@ -269,11 +273,12 @@ public CheckSocketChange(sData[eContent_t])
 		// Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
 		if (iLineCount == 1)
 		{
-			if (!equal(sLine, "HTTP/1.1 200 OK"))
+			if (!equal(sLine, "HTTP/1.1 200 OK") || get_pcvar_num(g_pCvarLogSuccess) == 1)
 			{
-				fm_ResourceLog("%s \"%s\"", sLine, sResource)
+				fm_ResourceLog("%s \"%s\"", sLine, sResource)	
 				break
-			}			
+			}
+						
 		}
 		else if (equal(sLine, "Content-Length: ", 16))
 		{
@@ -298,7 +303,7 @@ stock fm_ResourceLog(const sFormat[], any:...)
 	static sMessage[512]; sMessage[0] = '\0'
 	vformat(sMessage, charsmax(sMessage), sFormat, 2)
 
-	new sLogFile[32]; get_time("resource_%Y%m%d.log", sLogFile, charsmax(sLogFile))
+	new sLogFile[32]; get_time("resource_%Y%m.log", sLogFile, charsmax(sLogFile))
 	log_to_file(sLogFile, "%s", sMessage)
 	return 0
 }
