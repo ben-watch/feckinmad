@@ -1,5 +1,7 @@
 #include "feckinmad/fm_global"
 #include "feckinmad/fm_mapfile_api"
+#include "feckinmad/fm_mapfunc"
+#include "feckinmad/fm_time"
 #include "feckinmad/mapvote/fm_mapvote_mapmenu"
 
 #define NOMINATION_DELAY 3.0
@@ -56,28 +58,6 @@ public plugin_natives()
 	register_native("fm_PrintNominations", "Native_PrintNominations")
 
 	register_library("fm_mapvote_nominate")
-
-	set_module_filter("Module_Filter")
-	set_native_filter("Native_Filter")
-}
-
-
-public Module_Filter(sModule[])
-{
-	if (equal(sModule, g_sMapMenuLibrary))
-	{
-		return PLUGIN_HANDLED // Load the plugin even if the nominate plugin is not running
-	}
-	return PLUGIN_CONTINUE
-}
-
-public Native_Filter(sName[], iIndex, iTrap)
-{
-	if (!iTrap)
-	{
-		return PLUGIN_HANDLED	
-	}
-	return PLUGIN_CONTINUE
 }
 
 public Native_NominateMap()

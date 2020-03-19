@@ -1,4 +1,5 @@
-#include "feckinmad/fm"
+#include "feckinmad/fm_global"
+#include "feckinmad/fm_time"
 #include "feckinmad/fm_mapfile_api"
 
 enum ePreviousMap_t
@@ -17,8 +18,10 @@ new g_iPreviousMapCount
 new g_sCurrentMap[MAX_MAP_LEN]
 new g_iStartTime
 
-public fm_PluginInit() 
+public plugin_init() 
 {
+	fm_RegisterPlugin()
+
 	get_mapname(g_sCurrentMap, charsmax(g_sCurrentMap))
 	g_iStartTime = get_systime()
 

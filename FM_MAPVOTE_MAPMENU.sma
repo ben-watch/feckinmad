@@ -1,7 +1,7 @@
 #include "feckinmad/fm_global"
 #include "feckinmad/fm_mapfile_api" // fm_GetMapNameByIndex(), fm_GetMapCount()
 #include "feckinmad/mapvote/fm_mapvote_nominate" // fm_NominateMap()
-#include "feckinmad/mapvote/fm_mapvote_mapmenu" // g_sMapMenuLibrary
+#include "feckinmad/fm_menu"
 
 #define MAPS_PER_PAGE 8 // Number of maps that are displayed per page in the listmaps menu. 9) More 0)Back/Cancel
 
@@ -27,7 +27,7 @@ public fm_PluginInit()
 public plugin_natives()
 {
 	register_native("fm_ShowMapMenu", "Native_ShowMapMenu")
-	register_library(g_sMapMenuLibrary)
+	register_library("fm_mapvote_mapmenu")
 
 	set_module_filter("Module_Filter")
 	set_native_filter("Native_Filter")

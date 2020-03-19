@@ -4,6 +4,7 @@
 #define _fm_idle_included
 
 #pragma reqlib "fm_idle_api"
+stock const g_sIdleAPILibName[] = "fm_idle_api"
 
 forward fm_IdlePlayerAway(id)
 forward fm_IdlePlayerBack(id)

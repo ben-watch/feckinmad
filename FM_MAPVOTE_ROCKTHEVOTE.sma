@@ -29,7 +29,7 @@ public Admin_Rockthevote(id, iLevel, iCommand)
 	{
 		return PLUGIN_HANDLED
 	}
-
+
 	if (!UserRockVote(-1))
 	{
 		console_print(id, "Unable to rockthevote")
