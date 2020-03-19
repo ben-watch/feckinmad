@@ -14,6 +14,12 @@ enum eAddressData_t
 
 new g_sQuery[MAX_QUERY_LEN]
 
+
+public plugin_init()
+{
+	fm_RegisterPlugin()
+}
+
 public fm_SQLPlayerIdent(id, iPlayerIdent)
 {
 	if (!is_dedicated_server()) // loopback
