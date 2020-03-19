@@ -388,9 +388,9 @@ ReadMap(iFileHandle, sMap[])
 	fm_DebugPrintLevel(1, "ReadMap(%d, \"%s\")", iFileHandle, sMap)
 
 	new iVersion
-	if (fread(iFileHandle, iVersion, BLOCK_INT) != 1)
+	if (fread(iFileHandle, iVersion, BLOCK_INT) != BLOCK_INT)
 	{
-		fm_WarningLog("%s: Failed to read BSP version", sMap)
+		fm_WarningLog("%s: Failed to read BSP version.", sMap)
 		return 0
 	}
 
@@ -407,14 +407,14 @@ ReadMap(iFileHandle, sMap[])
 	fm_DebugPrintLevel(2, "Reading entdata lumpinfo")
 
 	new iEntOffset
-	if (fread(iFileHandle, iEntOffset, BLOCK_INT) != 1) 
+	if (fread(iFileHandle, iEntOffset, BLOCK_INT) != BLOCK_INT) 
 	{
 		fm_WarningLog("%s: Failed to read entdata file offset", sMap)
 		return 0
 	}
 
 	new iEntDataSize
-	if (fread(iFileHandle, iEntDataSize, BLOCK_INT) != 1)  
+	if (fread(iFileHandle, iEntDataSize, BLOCK_INT) != BLOCK_INT)  
 	{
 		fm_WarningLog("%s: Failed to read entdata size", sMap)
 		return 0
@@ -433,7 +433,7 @@ ReadMap(iFileHandle, sMap[])
 	}
 
 	new iTexOffset
-	if (fread(iFileHandle, iTexOffset, BLOCK_INT) != 1)
+	if (fread(iFileHandle, iTexOffset, BLOCK_INT) != BLOCK_INT)
 	{
 		fm_WarningLog("%s: Failed to read texdata file offset", sMap)
 		return 0
@@ -495,7 +495,7 @@ ReadMap(iFileHandle, sMap[])
 	}
 
 	new iTextureCount
-	if (fread(iFileHandle, iTextureCount, BLOCK_INT) != 1)
+	if (fread(iFileHandle, iTextureCount, BLOCK_INT) != BLOCK_INT)
 	{
 		fm_WarningLog("%s: Failed to read texture count", sMap)
 		return 0
@@ -543,7 +543,7 @@ ReadMap(iFileHandle, sMap[])
 			return 0
 		}
 
-		if (fread(iFileHandle, iWidth, BLOCK_INT) != 1 || fread(iFileHandle, iHeight, BLOCK_INT) != 1)
+		if (fread(iFileHandle, iWidth, BLOCK_INT) != BLOCK_INT || fread(iFileHandle, iHeight, BLOCK_INT) != BLOCK_INT)
 		{
 			fm_WarningLog("%s: Failed to read texture width/height", sMap)
 			return 0
