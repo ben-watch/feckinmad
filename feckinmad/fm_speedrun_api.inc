@@ -5,6 +5,8 @@
 
 #pragma reqlib "fm_speedrun_api"
 
+stock const g_sSpeedRunAPILibName[] = "fm_speedrun_api"
+
 #define SPEED_TIME_IN_SECOND 100
 #define SPEED_TIME_IN_MINUTE 6000
 
