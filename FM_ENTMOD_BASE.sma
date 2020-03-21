@@ -31,6 +31,12 @@ public plugin_precache()
 public plugin_init()
 {
 	fm_RegisterPlugin()
+	register_clcmd("fm_ent_count", "Player_PrintEntCount")
+}
+
+public Player_PrintEntCount(id)	
+{
+	client_print(id, print_chat, "Entity Count: %d/%d", engfunc(EngFunc_NumberOfEntities), global_get(glb_maxEntities))
 }
 
 public plugin_end()
