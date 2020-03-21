@@ -14,8 +14,10 @@ new g_sNominatedMapList[MAX_MAP_SLOTS][MAX_MAP_LEN] // Nominated maps
 new g_iNominatedMapPlayer[MAX_MAP_SLOTS] = { -1, ...} // The player that nominated the map
 new Float:g_fNominatedTime[MAX_MAP_SLOTS]// Gametime the nomination was made
 
-public fm_PluginInit() 
+public plugin_init()
 {
+	fm_RegisterPlugin()
+
 	get_mapname(g_sCurrentMap, charsmax(g_sCurrentMap))
 	g_iMaxPlayers = get_maxplayers()
 

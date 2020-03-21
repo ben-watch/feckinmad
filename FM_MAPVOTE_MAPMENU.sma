@@ -12,8 +12,10 @@ new g_iPlayerMenuPos[MAX_PLAYERS + 1] // Keep track of the players current page 
 
 new g_iMaxPlayers
 
-public fm_PluginInit() 
+public plugin_init() 
 {
+	fm_RegisterPlugin()
+
 	register_menucmd(register_menuid("Select Map:"), ALL_MENU_KEYS, "Command_MapsMenu")
 
 	register_clcmd("say","Handle_Say")

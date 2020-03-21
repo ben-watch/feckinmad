@@ -75,7 +75,7 @@ public Handle_Say(id)
 				new sName[MAX_NAME_LEN]; get_user_name(id, sName, charsmax(sName))
 				if (iRequiredRocks - g_iRockCount <= 0)
 				{
-					client_print(0, print_chat, "* %s has rocked the vote. Starting map vote as %d/%d (%d%%%%)%s players have rocked the vote", sName, g_iRockCount, iPlayerCount, floatround((float(g_iRockCount) / iPlayerCount) * 100), g_iIdleModule ? " active" : "")
+					client_print(0, print_chat, "* %s has rocked the vote. Starting map vote as %d/%d (%d%%)%s players have rocked the vote", sName, g_iRockCount, iPlayerCount, floatround((float(g_iRockCount) / iPlayerCount) * 100), g_iIdleModule ? " active" : "")
 					RockVoteQuotaReached()
 				}
 				else
@@ -140,7 +140,7 @@ ShouldMapVoteStart()
 	// Check the amount of rocks we have, start a mapvote if we have enough
 	if (iRequiredRocks - g_iRockCount <= 0)
 	{
-		client_print(0, print_chat, "* Starting map vote as %d/%d (%d%%%%)%s players have rocked the vote", g_iRockCount, iPlayerCount, floatround((float(g_iRockCount) / iPlayerCount) * 100), g_iIdleModule ? " active" : "")
+		client_print(0, print_chat, "* Starting map vote as %d/%d (%d%%)%s players have rocked the vote", g_iRockCount, iPlayerCount, floatround((float(g_iRockCount) / iPlayerCount) * 100), g_iIdleModule ? " active" : "")
 		RockVoteQuotaReached()
 	}
 	return 1	
