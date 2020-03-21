@@ -252,7 +252,7 @@ public RunThreadedQuery(iIndex)
 		SQL_ThreadQuery(SqlTuple, "Handle_ThreadedQuery", sQuery, Data, sizeof(Data))
 
 		g_iTotalQueryCount++
-		static sLogFile[32]; get_time("query_%Y%m%d.log", sLogFile, charsmax(sLogFile))
+		static sLogFile[32]; get_time("query_%Y%m.log", sLogFile, charsmax(sLogFile))
 		log_to_file(sLogFile, sQuery)
 	}
 	else // Execute the forward with our custom failstate 
@@ -277,7 +277,7 @@ public Handle_ThreadedQuery(iFailState, Handle:hQuery, sError[], iError, Data[],
 		return PLUGIN_HANDLED
 	}
 
-	static sLogFile[32]; get_time("query_%Y%m%d.log", sLogFile, charsmax(sLogFile))
+	static sLogFile[32]; get_time("query_%Y%m.log", sLogFile, charsmax(sLogFile))
 	log_to_file(sLogFile, "#%d: Queue Size: %d - Retry Count: %d - Last Query Queue Time %f", g_iQueryIdentCount, g_iQueryCount, g_iQueryRetryCount, fQueueTime)
 
 	g_iQueryRetryCount = 0
