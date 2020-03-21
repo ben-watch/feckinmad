@@ -174,7 +174,7 @@ public fm_PlayerStartedSpeedRunning(id)
 	g_bPlayerSpeedRunning[id] = true
 }
 
-public Forward_Touch(iEnt, id)
+public Forward_Touch(id,iEnt)
 {
 	if (id < 1 || id > g_iMaxPlayers)
 	{
@@ -323,58 +323,3 @@ public Handle_UpdateFlags(iFailState, Handle:hQuery, sError[], iError, sData[], 
 	
 	return PLUGIN_CONTINUE
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-			 Prevent query spam if an admin fucks up the flags...
-			/if (g_fPlayerEndTime[id] + 15.0 > fGameTime)
-			{
-				ResetTimer(id)
-				client_print(id, print_chat, "* 41561d")
-				return FMRES_IGNORED
-			}
-
-			if (g_iPlayerFinished[id] != 1)
-		{
- 			g_iPlayerFinished[id] = 1
-				IncreaseCompleteCount(id)
-			}
-
-			if (!AddPlayerSpeedrun(id, iTime))
-			{
-
-			}
-
-			ResetTimer(id)
-
-
-	}
-		else if (g_iPlayerFinished[id] != 1)
-		{
-			g_iPlayerFinished[id] = 1
-			IncreaseCompleteCount(id)
-
-			if (g_bCheckPointModule)
-			{
-				new sTime[32]; fm_SecondsToText(fm_get_user_playtime(id), sTime, charsmax(sTime))
-				client_print(0,print_chat, "* \"%s\" has completed the map using %d checkpoint saves and %d loads over a total playtime of %s", sName, fm_get_user_savecount(id), fm_get_user_loadcount(id), sTime)
-			}
-		}
-*/
