@@ -67,10 +67,15 @@ public Handle_Say(id)
 			new iPlayerCount = g_iIdleModule ? fm_GetActiveRealPlayerNum() : fm_GetRealPlayerNum()	
 			new iRequiredRocks = floatround(iPlayerCount * g_fRockPercent, floatround_ceil)
 
+			fm_DebugPrintLevel(3, "id: %d attempted to rockthevote", id)
+			fm_DebugPrintLevel(3, "iPlayerCount: %d iRequiredRocks: %d", iPlayerCount, iRequiredRocks)
+
 			if(!g_bPlayerRocked[id])
 			{ 
 				g_bPlayerRocked[id] = true 
 				g_iRockCount++
+
+				fm_DebugPrintLevel(3, "id: %d success to rockthevote. g_iRockCount: %d iRequiredRocks: %d", id, g_iRockCount, iRequiredRocks)
 
 				new sName[MAX_NAME_LEN]; get_user_name(id, sName, charsmax(sName))
 				if (iRequiredRocks - g_iRockCount <= 0)
@@ -83,6 +88,7 @@ public Handle_Say(id)
 			}
 			else
 			{
+				fm_DebugPrintLevel(3, "id: %d denied. Has already rockthevote", id)
 				client_print(id, print_chat, "* You have already rocked the vote. %d more players must rockthevote to start a map vote", iRequiredRocks - g_iRockCount)
 				return PLUGIN_HANDLED
 
@@ -108,17 +114,29 @@ public client_disconnected(id)
 // A player has become idle
 public fm_IdlePlayerAway(id)
 {
+	fm_DebugPrintLevel(1, "fm_IdlePlayerAway(%d) triggered", id)
+
+	// Remove their rock
+	if (g_bPlayerRocked[id])
+	{
+		g_bPlayerRocked[id] = false
+		g_iRockCount--
+	}
+
 	ShouldMapVoteStart()
 }
 
 // A player has come back from being idle
 public fm_IdlePlayerBack(id)
 {
+	fm_DebugPrintLevel(1, "fm_IdlePlayerBack(%d) triggered", id)
 	ShouldMapVoteStart()
 }
 
 ShouldMapVoteStart()
 {
+	fm_DebugPrintLevel(1, "ShouldMapVoteStart() triggered")
+
 	// Check that voting isn't already active and that enough time has passed to begin rocking the vote
 	if (!UserRockVote(0))
 	{
@@ -137,6 +155,8 @@ ShouldMapVoteStart()
 	// Calculate how many rocks would be required to start a mapvote
 	new iRequiredRocks = floatround(iPlayerCount * g_fRockPercent, floatround_ceil)	
 
+	fm_DebugPrintLevel(3, "g_iRockCount: %d iRequiredRocks: %d", g_iRockCount, iRequiredRocks)
+
 	// Check the amount of rocks we have, start a mapvote if we have enough
 	if (iRequiredRocks - g_iRockCount <= 0)
 	{
@@ -146,9 +166,10 @@ ShouldMapVoteStart()
 	return 1	
 }
 
-// 
 public fm_ResetMapVote()
 {
+	fm_DebugPrintLevel(1, "fm_ResetMapVote() triggered")
+
 	for (new i = 1, iMaxPlayers = get_maxplayers(); i <= iMaxPlayers; i++)
 	{
 		g_bPlayerRocked[i] = false
@@ -170,6 +191,8 @@ UserRockVote(id)
 // Runs a forward to tell other plugins that the rockthevote quota has been reached
 RockVoteQuotaReached()
 {
+	fm_DebugPrintLevel(1, "RockVoteQuotaReached() triggered")
+
 	new iReturn, iForward = CreateMultiForward("fm_RockVoteQuotaReached", ET_IGNORE)
 	ExecuteForward(iForward, iReturn)
 	DestroyForward(iForward)
