@@ -13,6 +13,7 @@ new Array:g_ModelList
 // Struct sizes for mdl data
 #define STRUCT_SIZE_TEXDATA 80 // char[64], int, int, int, int
 #define STRUCT_SIZE_BODYDATA 76 // char[64], int, int, int
+#define STRUCT_SIZE_MODELDATA 112 // ... see studio.h
 
 // Engine limits
 #define MAX_SKIN_COUNT 100
@@ -29,7 +30,7 @@ public plugin_init()
 	g_iMaxPlayers = get_maxplayers()
 	g_bPreacheDone = true
 
-	register_clcmd("debugmodel", "DebugPrintModelData")
+	//register_clcmd("debugmodel", "DebugPrintModelData")
 }
 
 public plugin_natives()
@@ -37,17 +38,31 @@ public plugin_natives()
 	register_native("fm_GetPlayerModelStatus", "Native_GetPlayerModelStatus")
 	register_native("fm_GetPlayerModelCount", "Native_GetPlayerModelCount")
 	register_native("fm_SetPlayerModelDisabled", "Native_SetPlayerModelDisabled")
+
+	// Natives for setting player values
 	register_native("fm_SetPlayerModel", "Native_SetPlayerModel")
 	register_native("fm_SetPlayerSkin", "Native_SetPlayerSkin")
 	register_native("fm_SetPlayerBody", "Native_SetPlayerBody")
 	register_native("fm_SetPlayerBodyValue", "Native_SetPlayerBodyValue")
-	register_native("fm_AddPlayerModel", "Native_AddPlayerModel")
 	register_native("fm_RemovePlayerModel", "Native_RemovePlayerModel")
-	register_native("fm_GetPlayerModelIndexByName", "Native_GetPlayerModelIndexByName")
+
+	// Natives for adding to the model list
+	register_native("fm_AddPlayerModel", "Native_AddPlayerModel")
+	
+	// Natives for fetching model data by database ident. Used when saving, since model in the index will change.
 	register_native("fm_GetPlayerModelIndexByIdent", "Native_GetPlayerModelIndexByIdent")
+
+	// Natives for fetching model data by index the model array. Used by menu
 	register_native("fm_GetPlayerModelIdentByIndex", "Native_GetPlayerModelIdentByIndex")
 	register_native("fm_GetPlayerModelDataByIndex", "Native_GetPlayerModelDataByIndex")
 	register_native("fm_GetPlayerModelNameByIndex", "Native_GetPlayerModelNameByIndex")
+	register_native("fm_GetPlayerModelNameByIndex", "Native_GetPlayerModelNameByIndex")
+
+	// Misc natives
+	register_native("fm_GetPlayerModelIndexByName", "Native_GetPlayerModelIndexByName")
+
+	register_native("fm_GetSubBodyPartTotalByModelIndex", "Native_GetSubBodyPartTotalByModelIndex")
+	register_native("fm_GetSubBodyNameByIndex", "Native_GetSubBodyNameByIndex")
 
 	register_library(g_sPlayerModelAPILibName)
 }
@@ -81,6 +96,65 @@ public Native_GetPlayerModelIndexByName(iPlugin, iParams)
 	new sModelName[MAX_MODEL_NAME_LEN]; get_string(2, sModelName, charsmax(sModelName))
 	return GetModelIndexByName(sModelName)
 }
+
+// fm_GetSubBodyNameByIndex(iModelIndex, iBodyIndex, iSubBodyIndex, sSubBodyName[MODEL_NAME_LEN])
+public Native_GetSubBodyNameByIndex(iPlugin, iParams)
+{
+	new iModelIndex = get_param(1)	
+	if (iModelIndex < 0 || iModelIndex > g_iModelNum)
+	{
+		log_error(AMX_ERR_NATIVE, "Model index out of range (%d)", iModelIndex)
+		return 0
+	}
+
+	new Model[eModel_t]; ArrayGetArray(GetModelArray(), iModelIndex, Model)
+	new BodyPart[eBodyPart_t], iBodyIndex = get_param(2)
+	if (iBodyIndex < 0 || iBodyIndex > Model[m_iModelBodyCount])
+	{
+		log_error(AMX_ERR_NATIVE, "Body index out of range (%d)", iBodyIndex)
+		return 0
+	}
+	
+	ArrayGetArray(Model[m_ModelBodyParts], iBodyIndex, BodyPart)
+	new iSubBodyIndex = get_param(3)
+	if (iSubBodyIndex < 0 || iSubBodyIndex > BodyPart[m_iBodyPartCount])
+	{
+		log_error(AMX_ERR_NATIVE, "Subbody index out of range (%d)", iSubBodyIndex)
+		return 0
+	}	
+
+	new sSubBodyName[MODEL_NAME_LEN]
+	ArrayGetString(BodyPart[m_SubBodyPartNames], iSubBodyIndex,  sSubBodyName, charsmax(sSubBodyName))
+	set_string(4, sSubBodyName, MODEL_NAME_LEN)
+	return 1
+}
+
+// fm_GetSubBodyPartTotalByModelIndex(iModelIndex). Returns the total number of sub body options across all body parts
+public Native_GetSubBodyPartTotalByModelIndex(iPlugin, iParams)
+{
+	new iModelIndex = get_param(1)	
+	if (iModelIndex < 0 || iModelIndex > g_iModelNum)
+	{
+		log_error(AMX_ERR_NATIVE, "Model index out of range (%d)", iModelIndex)
+		return -1
+	}
+
+	new Model[eModel_t]; ArrayGetArray(GetModelArray(), iModelIndex, Model)
+	new iTotalSubBody, BodyPart[eBodyPart_t]
+
+	for(new i = 0; i < Model[m_iModelBodyCount]; i++)
+	{
+		ArrayGetArray(Model[m_ModelBodyParts], i, BodyPart)
+
+		// Only count sub body options that can be changed.
+		// This should filter out any body parts that are just part of the main mesh.
+		if (BodyPart[m_iBodyPartCount] > 1)
+		{
+			iTotalSubBody += BodyPart[m_iBodyPartCount]
+		}
+	}
+	return iTotalSubBody
+}	
 
 public Native_GetPlayerModelDataByIdent(iPlugin, iParams)
 {
@@ -149,14 +223,13 @@ public Native_GetPlayerModelIndexByIdent(iPlugin, iParams)
 public Native_GetPlayerModelIdentByIndex(iPlugin, iParams)
 {
 	new iModelIndex = get_param(1)	
-	new Array:ModelArray = GetModelArray()
-
 	if (iModelIndex < 0 || iModelIndex > g_iModelNum)
 	{
 		log_error(AMX_ERR_NATIVE, "Model index out of range (%d)", iModelIndex)
 		return -1
 	}
 
+	new Array:ModelArray = GetModelArray()
 	new Buffer[eModel_t]; ArrayGetArray(ModelArray, iModelIndex, Buffer)
 	return Buffer[m_iModelIdent]
 }
@@ -287,10 +360,10 @@ public Native_SetPlayerBody(iPlugin, iParams)
 	// animation.cpp from hlsdk was a useful reference here. See SetBodygroup[...]
 	// TODO: BOUNDS CHECKS
 	new Model[eModel_t]; ArrayGetArray(Array:GetModelArray(), g_iPlayerCurrentPlayerModel[id], Model)
-	if (Model[m_iModelBodyCount] <= 1 || Model[m_ModelBodyParts] == Invalid_Array)
-	{
-		return 0
-	}
+	//if (Model[m_iModelBodyCount] < 1 || Model[m_ModelBodyParts] == Invalid_Array)
+	//{
+	//	return 0
+	//}
 
 	new BodyPart[eBodyPart_t]; ArrayGetArray(Model[m_ModelBodyParts], iGroup, BodyPart)
 	new iPlayerBody = pev(id, pev_body)
@@ -383,21 +456,32 @@ ReadModelData(Model[eModel_t], sModelPath[])
 	Model[m_iModelBodyCount] = iBodyCount
 	fm_DebugPrintLevel(2, "iBodyCount: %d iBodyOffset: %d", iBodyCount, iBodyOffset)
 
-	// Seek to the bodypart data and store the name and values needed for menu generation and pev_body calculations later
-	if (iBodyCount > 1)
+	
+	Model[m_ModelBodyParts] = ArrayCreate(eBodyPart_t)
+	new BodyPart[eBodyPart_t], iBodyPartModelIndex
+	for (new i = 0; i < iBodyCount; i++)
 	{
-		Model[m_ModelBodyParts] = ArrayCreate(eBodyPart_t)
-		new Buffer[eBodyPart_t]
-		for (new i = 0; i < iBodyCount; i++)
+		// Seek to the bodypart data and store the name and values needed for menu generation and pev_body calculations later
+		fseek(iFileHandle, iBodyOffset + (i * STRUCT_SIZE_BODYDATA), SEEK_SET)
+		fread_blocks(iFileHandle, BodyPart[m_sBodyPartName], BODY_NAME_LEN, BLOCK_CHAR)
+		fread(iFileHandle, BodyPart[m_iBodyPartCount], BLOCK_INT) // Read Body Part Num Models
+		fread(iFileHandle, BodyPart[m_iBodyPartBase], BLOCK_INT) // Read Body Part Base
+		fm_DebugPrintLevel(2, "Body %d: %s m_iBodyPartCount: %d m_iBodyPartBase: %d", i, BodyPart[m_sBodyPartName], BodyPart[m_iBodyPartCount], BodyPart[m_iBodyPartBase])				
+		
+		// Each bodypart references a model index. Read the name of each model for generating sub body names in the menu
+		fread(iFileHandle, iBodyPartModelIndex,  BLOCK_INT)
+		BodyPart[m_SubBodyPartNames] = ArrayCreate(MODEL_NAME_LEN)
+		new sModelName[MODEL_NAME_LEN]
+		for (new j = 0; j < BodyPart[m_iBodyPartCount]; j++)
 		{
-			fseek(iFileHandle, iBodyOffset + (i * STRUCT_SIZE_BODYDATA), SEEK_SET)
-			fread_blocks(iFileHandle, Buffer[m_sBodyPartName], BODY_NAME_LEN, BLOCK_CHAR)
-			fread(iFileHandle, Buffer[m_iBodyPartCount], BLOCK_INT) // Read Body Part Num Models
-			fread(iFileHandle, Buffer[m_iBodyPartBase], BLOCK_INT) // Read Body Part Base
+			fseek(iFileHandle, iBodyPartModelIndex + (j * STRUCT_SIZE_MODELDATA), SEEK_SET)
+			fread_blocks(iFileHandle, sModelName, MODEL_NAME_LEN, BLOCK_CHAR)
+			ArrayPushString(BodyPart[m_SubBodyPartNames], sModelName)
 
-			fm_DebugPrintLevel(2, "Body %d: %s m_iBodyPartCount: %d m_iBodyPartBase: %d", i, Buffer[m_sBodyPartName], Buffer[m_iBodyPartCount], Buffer[m_iBodyPartBase])				
-			ArrayPushArray(Model[m_ModelBodyParts], Buffer)
+			fm_DebugPrintLevel(2, "Sub Body %d: %s", j, sModelName)
 		}
+
+		ArrayPushArray(Model[m_ModelBodyParts], BodyPart)
 	}
 
 	if (iSkinFamilyCount > 1)
