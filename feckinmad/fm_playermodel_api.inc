@@ -4,6 +4,9 @@
 #define _fm_playermodel_included
 
 #define MAX_MODEL_NAME_LEN 32
+
+// From the structs in studio.h
+#define MODEL_NAME_LEN 64
 #define SKIN_NAME_LEN 64
 #define BODY_NAME_LEN 64
 
@@ -25,7 +28,8 @@ enum eBodyPart_t
 {
 	m_sBodyPartName[BODY_NAME_LEN],
 	m_iBodyPartCount,
-	m_iBodyPartBase
+	m_iBodyPartBase,
+	Array:m_SubBodyPartNames
 }
 
 enum
@@ -51,3 +55,5 @@ native fm_GetPlayerModelDataByIndex(iModelIdent, ModelData[eModel_t])
 native fm_GetPlayerModelNameByIndex(iModelIdent, sModelName[], iSize)
 native fm_GetPlayerModelIndexByIdent(iModelIdent)
 native fm_GetPlayerModelIdentByIndex(iModelIndex)
+native fm_GetSubBodyPartTotalByModelIndex(iModelIndex)
+native fm_GetSubBodyNameByIndex(iModelIndex, iBodyIndex, iSubBodyIndex, sSubBodyName[MODEL_NAME_LEN])
