@@ -9,10 +9,10 @@
 #define MAX_PLAYER_VAULT_AGE 86400 * 30 // 30 days. How many days to keep a players model cached locally (Reduces queries to DB and means the player gets their model on mapload) (lots of queries going on on mapload!)
 
 new g_iCacheVault = INVALID_HANDLE
-new const g_sPlayerQuery[] = "SELECT players.model_id, players.model_skin FROM players, models WHERE model_active=1 AND players.model_id = models.model_id AND player_id = %d LIMIT 1;"
+new const g_sPlayerQuery[] = "SELECT players.model_id, players.model_skin, players.model_body FROM players, models WHERE model_active=1 AND players.model_id = models.model_id AND player_id = %d LIMIT 1;"
 new const g_sPlayerModelVault[] = "fm_playermodel_cache"
 new g_iPlayerQuery[MAX_PLAYERS + 1]
-new g_sQuery[512]
+new g_sQuery[512], bool:g_bPluginEnd
 
 public plugin_init() 
 { 
@@ -31,6 +31,7 @@ public plugin_end()
 	{
 		nvault_close(g_iCacheVault)
 	}
+	g_bPluginEnd = true
 }
 
 public client_disconnected(id)
@@ -46,6 +47,12 @@ public fm_PlayerModelMenuExit(id, sMenuSelection[MENU_TYPE_COUNT])
 {
 	fm_DebugPrintLevel(1, "fm_PlayerModelMenuExit(%d, { %d, %d, %d, %d }", id, sMenuSelection[0], sMenuSelection[1], sMenuSelection[2], sMenuSelection[3])
 	
+	// Ghost triggers
+	if (g_bPluginEnd || sMenuSelection[MENU_TYPE_MODEL] == -2)
+	{
+		return
+	}
+	
 	// Convert model index passed from the menu keys to the ident of the model in the database
 	new iValue = sMenuSelection[MENU_TYPE_MODEL] 
 	if (iValue != -1)
@@ -55,6 +62,7 @@ public fm_PlayerModelMenuExit(id, sMenuSelection[MENU_TYPE_COUNT])
 
 	// Since the pev_body calculations are based off the current pev_body and not just what is selected in the menu, just grab the single value already applied.
 	SavePlayerModel(id, iValue, sMenuSelection[MENU_TYPE_SKIN], pev(id, pev_body))
+	
 }
 
 public fm_SQLPlayerIdent(id, iPlayerIdent)
@@ -234,5 +242,5 @@ SavePlayerModel(id, iModelIdent, iSkin, iBody)
 public Handle_UpdateModel(iFailState, Handle:hQuery, sError[], iError, sData[], iLen, Float:fQueueTime)
 {	
 	fm_SQLCheckThreadedError(iFailState, hQuery, sError, iError)
-	g_iPlayerQuery[sData[0]] = 0
+	g_iPlayerQuery[sData[0]] = -2
 }
