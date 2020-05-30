@@ -22,6 +22,10 @@ public plugin_precache()
 		// I don't want to use a blocking query to avoid hanging mapchanges
 		g_iLastDatabaseUpdate = ReadCacheFile()
 	}
+	else
+	{
+		fm_SetPlayerModelDisabled()
+	}
 }
 
 public plugin_natives()
