@@ -124,7 +124,7 @@ SelectModel(id, iPos)
 	for(new i = iStart; i < iEnd; i++)
 	{
 		fm_GetPlayerModelDataByIndex(i, Buffer)
-		iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "\\w%d) %s%s\n", iCurrentKey + 1, Buffer[m_sModelName], (Buffer[m_iModelSkinCount] > 1 || Buffer[m_iModelBodyCount] > 1) ? "\\d..." : "")
+		iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "\\w%d) %s%s\n", iCurrentKey + 1, Buffer[m_sModelName], (Buffer[m_iModelSkinCount] > 1 || fm_GetSubBodyPartTotalByModelIndex(i) > 1) ? "\\d..." : "")
 		iKeys |= (1<<iCurrentKey++)
 	}
 		
@@ -177,11 +177,11 @@ public Command_SelectModel(id, iKey)
 				
 				fm_SetPlayerModel(id, Buffer[m_sModelName]) // Set the player model
 				fm_SetPlayerSkin(id, 0) // Reset modifiers since new model has been selected
-				fm_SetPlayerBody(id, 0, 0)
+				fm_SetPlayerBodyValue(id, 0)
 			}
 
 			// Theres some skins / bodygroups that the player can change, so open the modifier menu. Else reopen the model menu to allow additional model changes
-			if (iKey != 7 && (Buffer[m_iModelBodyCount] > 1 || Buffer[m_iModelSkinCount] > 1))
+			if (iKey != 7 && (fm_GetSubBodyPartTotalByModelIndex(g_iPlayerMenuItemSelection[id][MENU_TYPE_MODEL]) > 1 || Buffer[m_iModelSkinCount] > 1))
 			{
 				SelectModifier(id) 
 			}
@@ -197,22 +197,23 @@ public Command_SelectModel(id, iKey)
 
 SelectModifier(id)
 {
-	new Buffer[eModel_t]; fm_GetPlayerModelDataByIndex(g_iPlayerMenuItemSelection[id][MENU_TYPE_MODEL], Buffer)
-	new iSkinCount = Buffer[m_iModelSkinCount]; new iBodyCount = Buffer[m_iModelBodyCount]
+	new iModelIndex = g_iPlayerMenuItemSelection[id][MENU_TYPE_MODEL]
+	new Buffer[eModel_t]; fm_GetPlayerModelDataByIndex(iModelIndex, Buffer)
+	new iSkinCount = Buffer[m_iModelSkinCount]
 
 	new sMenuBody[256], iKeys, iLen = formatex(sMenuBody, charsmax(sMenuBody), "Select Modifier:\n")
-
 	if (iSkinCount > 1)
 	{
 		iKeys |= (1<<0)
 	}
 	iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "%s\n1) Skins (%d)", iSkinCount > 1 ? "\\w" : "\\d", iSkinCount)
 	
-	if (iBodyCount > 1)
+	new iSubBodyTotal = fm_GetSubBodyPartTotalByModelIndex(iModelIndex)
+	if (iSubBodyTotal > 1)
 	{
 		iKeys |= (1<<1)
 	}
-	iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "%s\n2) Body Parts (%d)", iBodyCount > 1 ? "\\w" : "\\d",  iBodyCount)
+	iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "%s\n2) Body Parts (%d)", iSubBodyTotal > 1 ? "\\w" : "\\d",  iSubBodyTotal)
 	
 	formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "\\w\n\n0) Back")
 	iKeys |= (1<<9)	
@@ -233,8 +234,8 @@ public Command_SelectModifier(id, iKey)
 	g_iPlayerMenuPagePosition[id][MENU_TYPE_SKIN] = g_iPlayerMenuPagePosition[id][MENU_TYPE_BODYGROUP] = g_iPlayerMenuItemSelection[id][MENU_TYPE_BODYSUB] = 0 // Reset any modifier menu positions
 	switch(iKey) 
 	{
-		case 0: SelectSkin(id, 0)
-		case 1: SelectBody(id, 0)
+		case 0: SelectSkin(id, g_iPlayerMenuPagePosition[id][MENU_TYPE_SKIN] = 0)
+		case 1: SelectBody(id, g_iPlayerMenuPagePosition[id][MENU_TYPE_BODYGROUP] = 0)
 		case 9: SelectModel(id, g_iPlayerMenuPagePosition[id][MENU_TYPE_MODEL])
 	}
 	fm_PlaySound(id, FM_MENU_SELECT_SOUND)
@@ -379,8 +380,7 @@ public Command_SelectBody(id, iKey)
 
 			if (BodyParts[m_iBodyPartCount] > 1)
 			{
-				g_iPlayerMenuPagePosition[id][MENU_TYPE_BODYSUB] = 0
-				SelectSubBody(id, 0)
+				SelectSubBody(id, g_iPlayerMenuPagePosition[id][MENU_TYPE_BODYSUB] = 0)
 			}
 			else
 			{
@@ -416,9 +416,11 @@ SelectSubBody(id, iPos)
 		iEnd = iSubBodyCount 
 	}
 	
+	new sSubBodyName[MODEL_NAME_LEN]
 	for(new i = iStart; i < iEnd; i++)
 	{
-		iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "%d) %s %d\n", iCurrentKey + 1, BodyParts[m_sBodyPartName], iCurrentKey + 1)
+		fm_GetSubBodyNameByIndex(g_iPlayerMenuItemSelection[id][MENU_TYPE_MODEL], g_iPlayerMenuItemSelection[id][MENU_TYPE_BODYGROUP], i, sSubBodyName)
+		iLen += formatex(sMenuBody[iLen], (charsmax(sMenuBody) - iLen), "%d) %s\n", iCurrentKey + 1, sSubBodyName)
 		iKeys |= (1<<iCurrentKey++)
 	}
 		
@@ -463,7 +465,7 @@ ResetPlayerMenu(id)
 {
 	for (new i = 0; i < MENU_TYPE_COUNT; i++)
 	{
-		g_iPlayerMenuItemSelection[id][i] = 0
+		g_iPlayerMenuItemSelection[id][i] = -2
 		g_iPlayerMenuPagePosition[id][i] = 0
 	}
 }
@@ -472,7 +474,7 @@ ResetPlayerMenuSelection(id)
 {
 	for (new i = 0; i < MENU_TYPE_COUNT; i++)
 	{
-		g_iPlayerMenuItemSelection[id][i] = 0
+		g_iPlayerMenuItemSelection[id][i] = -2
 	}
 }
 
