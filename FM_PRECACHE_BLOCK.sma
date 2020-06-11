@@ -24,8 +24,10 @@ enum {
 	READ_WHITELIST
 }
 
-// Class limitations specified in the info_tfdetect
 #define NUM_CLASS_BLOCKS 10
+#define MAX_CLASS_BLOCK_VAL 1023 // Value of all the below bits added up
+
+// Class limitations specified in the info_tfdetect
 new const g_sValidClassBlocks[NUM_CLASS_BLOCKS][] = 
 {
 	"scout",   // 1<<0 = 1
@@ -39,7 +41,6 @@ new const g_sValidClassBlocks[NUM_CLASS_BLOCKS][] =
 	"spy",     // 1<<8 = 256
 	"engineer" // 1<<9 = 512
 }
-#define MAX_CLASS_BLOCK_VAL 1023
 
 #define NUM_WEAPON_BLOCKS 18
 new const g_sValidWeaponBlocks[NUM_WEAPON_BLOCKS][] = 
@@ -86,12 +87,12 @@ public plugin_precache()
 	}
 
 	// Lets store the precache config dir as a global as we'll use it several times
-	new Buffer[128]; get_localinfo("amxx_configsdir", Buffer, charsmax(Buffer))
-	formatex(g_sPrecacheDir, charsmax(g_sPrecacheDir), "%s/precache", Buffer)
+	new sBuffer[128]; get_localinfo("amxx_configsdir", sBuffer, charsmax(sBuffer))
+	formatex(g_sPrecacheDir, charsmax(g_sPrecacheDir), "%s/precache", sBuffer)
 
 	// Read the default precache blocks. This will include everything that we could potentially block that isn't always needed in a map
-	formatex(Buffer, charsmax(Buffer), "%s/default.ini", g_sPrecacheDir)
-	ReadPrecacheFile(Buffer, READ_BLACKLIST)
+	formatex(sBuffer, charsmax(sBuffer), "%s/default.ini", g_sPrecacheDir)
+	ReadPrecacheFile(sBuffer, READ_BLACKLIST)
 
 	// Next unblock the resources we know we'll not use in this map. i.e. Resources linked to classes that are not enabled
 	// Or unblock resources where they are used in the map. Read this from the entdata.
@@ -99,35 +100,49 @@ public plugin_precache()
 	ReadMapEntData(sCurrentMap)
 
 	// Read the resources we always want to block regardless of what's been loaded so far
-	formatex(Buffer, charsmax(Buffer), "%s/default-blacklist.ini", g_sPrecacheDir)
-	ReadPrecacheFile(Buffer, READ_BLACKLIST)
+	formatex(sBuffer, charsmax(sBuffer), "%s/default-blacklist.ini", g_sPrecacheDir)
+	if (file_exists(sBuffer))
+	{	
+		ReadPrecacheFile(sBuffer, READ_BLACKLIST)
+	}
 
 	// Repeat this for any map specific config
-	formatex(Buffer, charsmax(Buffer), "%s/maps/%s-blacklist.ini", g_sPrecacheDir, sCurrentMap)
-	ReadPrecacheFile(Buffer, READ_WHITELIST)
+	formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-blacklist.ini", g_sPrecacheDir, sCurrentMap)
+	if (file_exists(sBuffer))
+	{
+		ReadPrecacheFile(sBuffer, READ_WHITELIST)
+	}
 
 	// Read the resources we always want to remain unblocked
-	formatex(Buffer, charsmax(Buffer), "%s/default-whitelist.ini", g_sPrecacheDir)
-	ReadPrecacheFile(Buffer, READ_WHITELIST)
+	formatex(sBuffer, charsmax(sBuffer), "%s/default-whitelist.ini", g_sPrecacheDir)
+	if (file_exists(sBuffer))
+	{
+		ReadPrecacheFile(sBuffer, READ_WHITELIST)
+	}
 
 	// Repeat this for any map specific config
-	formatex(Buffer, charsmax(Buffer), "%s/maps/%s-whitelist.ini", g_sPrecacheDir, sCurrentMap)
-	ReadPrecacheFile(Buffer, READ_WHITELIST)
+	formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-whitelist.ini", g_sPrecacheDir, sCurrentMap)
+	if (file_exists(sBuffer))
+	{
+		ReadPrecacheFile(sBuffer, READ_WHITELIST)
+	}
 
 	// Write a log of the blocked resources for troubleshooting / reference
-	formatex(Buffer, charsmax(Buffer), "%s/maps/%s-result.log", g_sPrecacheDir, sCurrentMap)
-	WritePrecaceLogFile(Buffer)
+	formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-result.log", g_sPrecacheDir, sCurrentMap)
+	WritePrecaceLogFile(sBuffer)
 
 	// Lets try to catch where the models or sounds are used by hooking onto the common way these resources are used. It is not the intention of this plugin to replace resources,
 	// and this is an attempt to protect against crashing if we blocked something that is used. This shouldn't happen unless mistakes are made.
 	if (g_iResourceCount[TYPE_SOUND] > 0)
 	{
 		register_forward(FM_EmitSound, "Forward_EmitSound")
+		register_forward(FM_EmitAmbientSound, "Forward_EmitAmbientSound") // Not sure this is used.
 	}
 	if (g_iResourceCount[TYPE_MODEL] > 0)
 	{
 		iReplacement = engfunc(EngFunc_PrecacheModel, g_sReplacementModel)
 		register_forward(FM_SetModel, "Forward_SetModel")
+		
 	}
 
 	// Used when capturing precache data and where it is used
@@ -137,6 +152,7 @@ public plugin_precache()
 	register_forward(FM_CreateEntity, "Forward_CreateEntity")
 	register_forward(FM_CreateNamedEntity, "Forward_CreateNamedEntity_Post", 1)
 	register_forward(FM_RemoveEntity, "Forward_RemoveEntity")
+	//register_forward(FM_ModelIndex, "Forward_ModelIndex")
 	#endif
 
 }
@@ -193,7 +209,7 @@ ReadMapEntData(sMap[])
 	new iEndOffset = iEntOffset + iEntDataSize // Calculate end offset of entdata	
 	new sData[MAX_KEY + MAX_VALUE + 8], sKey[MAX_KEY], sValue[MAX_VALUE]
 	new bool:bDetectEnt, bool:bClassLimitDone, iClassValue = MAX_CLASS_BLOCK_VAL
-	new bool:bCivilianClass
+	new bool:bCivilianClass, bool:bClassKeyParsed
 
 	// TODO: I'm not super happy about having to capture the info_tfdetect data like this. It works, but is ugly.
 	// Need to write parser function that will read all the lines related to entity keys at once.
@@ -212,7 +228,8 @@ ReadMapEntData(sMap[])
 			// Entity we are working on is now changing. If the current entity the info_tfdetect lets process what we (hopefully) read from the class keys
 			if (bDetectEnt)
 			{		
-				fm_DebugPrintLevel(2, "Finished processing info_tfdetect. iClassValue: %d bCivilianClass: %s", iClassValue, bCivilianClass ? "Y" : "N")		
+				fm_DebugPrintLevel(2, "Finished processing info_tfdetect. iClassValue: %d bCivilianClass: %s", iClassValue, bCivilianClass ? "Y" : "N")	
+	
 				bClassLimitDone = true // Avoid any more processing of keys. TFC shares keys so the keys used for class restrictions aren't unique to the info_tfdetect entity
 				bDetectEnt = false // Mark that we're no longer working with the info_tfdetect
 
@@ -223,11 +240,16 @@ ReadMapEntData(sMap[])
 					formatex(sBuffer, charsmax(sBuffer), "%s/tf_class_civilian.ini", g_sPrecacheDir)
 					ReadPrecacheFile(sBuffer, READ_WHITELIST)
 				}
+				
+				if (!bClassKeyParsed)
+				{
+					iClassValue = 0
+				}
 
 				// Run through each class config and whitelist if the class is availiable on the map
 				for (new i = 0; i < NUM_CLASS_BLOCKS; i++)
 				{
-					if (~iClassValue & (1<<i) || iClassValue == MAX_CLASS_BLOCK_VAL)
+					if ((~iClassValue & (1<<i) || !iClassValue) && i != 7) // 7 is the: No Random class, so nothing to load there.
 					{
 						formatex(sBuffer, charsmax(sBuffer), "%s/tf_class_%s.ini", g_sPrecacheDir, g_sValidClassBlocks[i])
 						ReadPrecacheFile(sBuffer, READ_WHITELIST)
@@ -237,29 +259,42 @@ ReadMapEntData(sMap[])
 			else
 			{
 				// There's a chance that we read keys that belong to another entity and not the info_tfdetect. Reset the variables after each non info_tfdetect entity.
+				// TODO: This is a shitshow. Lets rewrite this
 				bCivilianClass = false
 				iClassValue = MAX_CLASS_BLOCK_VAL
 				bClassLimitDone = false
+				bClassKeyParsed = false
 			}	
 		}
 		else if (parse(sData, sKey, charsmax(sKey), sValue, charsmax(sValue)) == 2)
 		{
-			if (equali(sKey, "classname")) 
+			if (equal(sKey, "classname")) 
 			{
-				if (equali(sValue, "info_tfdetect"))
+				if (equal(sValue, "info_tfdetect"))
 				{
 					fm_DebugPrintLevel(2, "Detected info_tfdetect classname")
-
-					// Now THIS is podracing! Flag that we've seen the info_tfdetect. Note: This can appear at the after of all the others keyvalue pairs
-					bDetectEnt = true 
+					bDetectEnt = true  // Now THIS is podracing! Flag that we've seen the info_tfdetect. Note: This can appear at the after of all the others keyvalue pairs
 				}
-				else if (equal(sKey, "replacement_model")) // item_tfgoal allows the player model to be replaced. Make sure we whitelist it
+				else if (equal(sValue, "item_suit"))
 				{
-					new sBuffer[128]; formatex(sBuffer, charsmax(sBuffer), "models/player/%s/%s.mdl", sValue, sValue)
-					if (fm_InsertIntoSortedList(Array:g_ResourceBlockList[TYPE_MODEL], sBuffer))
-					{
-						g_iResourceCount[TYPE_MODEL]++
-					}	
+					RemoveFromBlockList("models/w_suit.mdl", TYPE_MODEL)
+				}
+				else if (equal(sValue, "item_battery"))
+				{
+					RemoveFromBlockList("models/w_battery.mdl", TYPE_MODEL)
+					RemoveFromBlockList("sound/items/gunpickup2.wav", TYPE_SOUND)
+				}
+				else if (equal(sValue, "item_antidote"))
+				{
+					RemoveFromBlockList("models/w_antidote.mdl", TYPE_MODEL)
+				}
+				else if (equal(sValue, "item_security"))
+				{
+					RemoveFromBlockList("models/w_security.mdl", TYPE_MODEL)
+				}
+				else if (equal(sValue, "item_longjump"))
+				{
+					RemoveFromBlockList("models/w_longjump.mdl", TYPE_MODEL)
 				}
 				else
 				{
@@ -268,10 +303,17 @@ ReadMapEntData(sMap[])
 					{
 						if (equali(sValue, g_sValidWeaponBlocks[i]))
 						{
-							// Remove from the block list so we don't block any of it's precache
+							// Remove from the blocklist so we don't block any of it's precache
 							new sBuffer[128]; formatex(sBuffer, charsmax(sBuffer), "%s/%s.ini", g_sPrecacheDir, g_sValidWeaponBlocks[i])
 							ReadPrecacheFile(sBuffer, READ_WHITELIST)
-							AllowWeaponDeploy(g_sValidWeaponBlocks[i]) // Allow the deployment of the weapon
+
+							// Allow the deployment of the weapon
+							AllowWeaponDeploy(g_sValidWeaponBlocks[i]) 
+
+							// This also means the civilian will obtain ammo. Therefore they will drop backpacks. Make sure they aren't blocked
+							RemoveFromBlockList("models/backpack.mdl", TYPE_MODEL)
+							RemoveFromBlockList("sound/items/ammopickup1.wav", TYPE_SOUND)
+							RemoveFromBlockList("sound/items/ammopickup2.wav", TYPE_SOUND)
 						}
 					}
 				}
@@ -292,7 +334,7 @@ ReadMapEntData(sMap[])
 					case 0: // All classes are allowed, so we can't unprecache any class related resources. 
 					{
 						bClassLimitDone = true // Lets end it all... it's pointless from here on out.
-						iClassValue = MAX_CLASS_BLOCK_VAL // Mark all classes as valid
+						iClassValue = 0 // Mark all classes as valid
 					}
 					default: // Other class limit TODO: Handle this after all the keys are processed to avoid reading files that have already been read.
 					{
@@ -300,7 +342,35 @@ ReadMapEntData(sMap[])
 						iClassValue &= iValue
 					}
 				}
-				continue
+				bClassKeyParsed = true
+			}
+			else if (equal(sKey, "invincible_finished"))
+			{
+				RemoveFromBlockList("sound/items/protect.wav", TYPE_SOUND)
+ 				RemoveFromBlockList("sound/items/protect2.wav", TYPE_SOUND)
+				RemoveFromBlockList("sound/items/protect3.wav", TYPE_SOUND)
+			}
+			else if (equal(sKey, "invisible_finished"))
+			{
+				RemoveFromBlockList("sound/items/inv1.wav", TYPE_SOUND)
+ 				RemoveFromBlockList("sound/items/inv2.wav", TYPE_SOUND)
+				RemoveFromBlockList("sound/items/inv3.wav", TYPE_SOUND)
+			}
+			else if (equal(sKey, "super_damage_finished"))
+			{
+				RemoveFromBlockList("sound/items/damage.wav", TYPE_SOUND)
+ 				RemoveFromBlockList("sound/items/damage2.wav", TYPE_SOUND)
+				RemoveFromBlockList("sound/items/damage3.wav", TYPE_SOUND)
+			}
+			else if (equal(sKey, "radsuit_finished"))
+			{
+ 				RemoveFromBlockList("sound/FVox/HEV_logon.wav", TYPE_SOUND)
+				RemoveFromBlockList("sound/FVox/hev_shutdown.wav", TYPE_SOUND)
+			}
+			else if (equal(sKey, "replacement_model")) // item_tfgoal allows the player model to be replaced. Make sure we whitelist it
+			{
+				new sBuffer[128]; formatex(sBuffer, charsmax(sBuffer), "models/player/%s/%s.mdl", sValue, sValue)
+				RemoveFromBlockList(sBuffer, TYPE_MODEL)			
 			}
 			else
 			{
@@ -308,21 +378,23 @@ ReadMapEntData(sMap[])
 				new iType = GetResourceType(sValue)
 				if (iType != -1)
 				{
-					if (fm_RemoveFromSortedList(g_ResourceBlockList[iType], sValue[iType == TYPE_SOUND ? 6 : 0]))
-					{
-						g_iResourceCount[iType]--
-					}
+					RemoveFromBlockList(sValue, iType)
 				}
 			}
-
-			// TODO: Handle some other keys here that would need resources whitelisted for example entities with effects such as quad.
-			// invincible_finished(integer) : "Invincibility duration"
-			// invisible_finished(integer) : "Invisibility duration"
-			// super_damage_finished(integer) : "Quad duration"
-			// radsuit_finished	
 		}
 	}
 	return 1
+}
+
+RemoveFromBlockList(sFile[], iType)
+{
+	if (fm_RemoveFromSortedList(g_ResourceBlockList[iType], sFile[iType == TYPE_SOUND ? 6 : 0]))
+	{
+		fm_DebugPrintLevel(2, "Removed: \"%s\" from blocklist (%d)", sFile[iType == TYPE_SOUND ? 6 : 0], iType)
+		g_iResourceCount[iType]--
+		return 1
+	}
+	return 0
 }
 
 ReadPrecacheFile(sFile[], iBlackList)
@@ -388,16 +460,12 @@ ReadPrecacheFile(sFile[], iBlackList)
 				}
 				else // Assume type whitelist
 				{
-					if (fm_RemoveFromSortedList(g_ResourceBlockList[iType], sData[iType == TYPE_SOUND ? 6 : 0]))
-					{
-						fm_DebugPrintLevel(2, "Removed: \"%s\" from blacklist (%d)", sData[iType == TYPE_SOUND ? 6 : 0], iType)
-						g_iResourceCount[iType]--
-					}
+					RemoveFromBlockList(sData, iType)
 				}
 			}
 			else
 			{
-				// fm_WarningLog
+				fm_WarningLog("Error reading \"%s\". Not a file: \"%s\"", sFile, sData)
 			}
 		}		
 	}
@@ -487,10 +555,21 @@ public Forward_PrecacheGeneric(sFile[])
 // The "sound/" directory at the start of the string is assumed by EmitSound and not included in the path
 public Forward_EmitSound(iEnt, iChannel, sSound[])
 {	
-	fm_DebugPrintLevel(2, "Forward_EmitSound: \"%s\"", sSound) 
+	fm_DebugPrintLevel(2, "Forward_EmitSound: \"sound/%s\"", sSound) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[TYPE_SOUND], sSound, 0, g_iResourceCount[TYPE_SOUND] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked emitsound for file: \"sound/%s\"", sSound)	
+		fm_WarningLog("Blocked EmitSound for file: \"sound/%s\"", sSound)	
+		return FMRES_SUPERCEDE
+	}
+	return FMRES_IGNORED
+}
+
+public Forward_EmitAmbientSound(iEnt, iChannel, sSound[])
+{	
+	fm_DebugPrintLevel(2, "Forward_EmitAmbientSound: \"sound/%s\"", sSound) 
+	if (fm_BinarySearch(Array:g_ResourceBlockList[TYPE_SOUND], sSound, 0, g_iResourceCount[TYPE_SOUND] - 1, 0) != -1)
+	{
+		fm_WarningLog("Blocked EmitAmbientSound for file: \"sound/%s\"", sSound)	
 		return FMRES_SUPERCEDE
 	}
 	return FMRES_IGNORED
@@ -591,16 +670,13 @@ public Forward_KeyValue(iEnt, Kvd)
 	fm_DebugPrintLevel(1, "Forward_KeyValue(%d, {Key: \"%s\" Value: \"%s\"})", iEnt, sKey, sValue)
 }
 
-public Forward_ModelIndex(sModel[])
-{
-	fm_DebugPrintLevel(1, "Forward_ModelIndex(\"%s\")", sModel)
-}
-
 public Forward_RemoveEntity(iEnt)
 {
 	fm_DebugPrintLevel(1, "Forward_RemoveEntity(%d)", iEnt)
 }
+
+public Forward_ModelIndex(sModel[])
+{
+	fm_DebugPrintLevel(2, "Forward_ModelIndex: \"%s\"", sModel) 
+}
 #endif
-
-
-
