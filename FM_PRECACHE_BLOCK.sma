@@ -9,6 +9,8 @@
 #define	MAX_KEY	32
 #define	MAX_VALUE 1024
 
+#define PRECACHE_TEST
+
 // The different types of resources that can be precached
 enum {
 	TYPE_SOUND,
@@ -91,15 +93,30 @@ public plugin_precache()
 	formatex(Buffer, charsmax(Buffer), "%s/default.ini", g_sPrecacheDir)
 	ReadPrecacheFile(Buffer, READ_BLACKLIST)
 
-	// Now lets remove the stuff we know we'll need for this map. i.e. resources used in the world OR by the allowed classes
-	// If the map config file exists, read it, else create it by reading the .bsp entdata
-	new sCurrentMap[MAX_MAP_LEN]; get_mapname(sCurrentMap, charsmax(sCurrentMap))
-
-	// TODO: Handle some kind of saving of this so we don't need to read it all the time from the.bsp
-	//new sMapConfig[128]; formatex(sMapConfig, charsmax(sMapConfig), "%s/maps/%s.ini", g_sPrecacheDir, sCurrentMap)
-	//if (file_exists(sMapConfig)) { ReadPrecacheFile( ... } else {....
-
+	// Next unblock the resources we know we'll not use in this map. i.e. Resources linked to classes that are not enabled
+	// Or unblock resources where they are used in the map. Read this from the entdata.
+	new sCurrentMap[MAX_MAP_LEN]; get_mapname(sCurrentMap, charsmax(sCurrentMap))	
 	ReadMapEntData(sCurrentMap)
+
+	// Read the resources we always want to block regardless of what's been loaded so far
+	formatex(Buffer, charsmax(Buffer), "%s/default-blacklist.ini", g_sPrecacheDir)
+	ReadPrecacheFile(Buffer, READ_BLACKLIST)
+
+	// Repeat this for any map specific config
+	formatex(Buffer, charsmax(Buffer), "%s/maps/%s-blacklist.ini", g_sPrecacheDir, sCurrentMap)
+	ReadPrecacheFile(Buffer, READ_WHITELIST)
+
+	// Read the resources we always want to remain unblocked
+	formatex(Buffer, charsmax(Buffer), "%s/default-whitelist.ini", g_sPrecacheDir)
+	ReadPrecacheFile(Buffer, READ_WHITELIST)
+
+	// Repeat this for any map specific config
+	formatex(Buffer, charsmax(Buffer), "%s/maps/%s-whitelist.ini", g_sPrecacheDir, sCurrentMap)
+	ReadPrecacheFile(Buffer, READ_WHITELIST)
+
+	// Write a log of the blocked resources for troubleshooting / reference
+	formatex(Buffer, charsmax(Buffer), "%s/maps/%s-result.log", g_sPrecacheDir, sCurrentMap)
+	WritePrecaceLogFile(Buffer)
 
 	// Lets try to catch where the models or sounds are used by hooking onto the common way these resources are used. It is not the intention of this plugin to replace resources,
 	// and this is an attempt to protect against crashing if we blocked something that is used. This shouldn't happen unless mistakes are made.
@@ -112,6 +129,16 @@ public plugin_precache()
 		iReplacement = engfunc(EngFunc_PrecacheModel, g_sReplacementModel)
 		register_forward(FM_SetModel, "Forward_SetModel")
 	}
+
+	// Used when capturing precache data and where it is used
+	#if defined PRECACHE_TEST
+	register_forward(FM_KeyValue, "Forward_KeyValue")
+	register_forward(FM_Spawn, "Forward_Spawn")
+	register_forward(FM_CreateEntity, "Forward_CreateEntity")
+	register_forward(FM_CreateNamedEntity, "Forward_CreateNamedEntity_Post", 1)
+	register_forward(FM_RemoveEntity, "Forward_RemoveEntity")
+	#endif
+
 }
 
 public plugin_init()
@@ -168,6 +195,8 @@ ReadMapEntData(sMap[])
 	new bool:bDetectEnt, bool:bClassLimitDone, iClassValue = MAX_CLASS_BLOCK_VAL
 	new bool:bCivilianClass
 
+	// TODO: I'm not super happy about having to capture the info_tfdetect data like this. It works, but is ugly.
+	// Need to write parser function that will read all the lines related to entity keys at once.
 	while(ftell(iFileHandle) < iEndOffset)
 	{	
 		if (feof(iFileHandle))
@@ -307,7 +336,7 @@ ReadPrecacheFile(sFile[], iBlackList)
 		return 0
 	}
 
-	new sData[512]
+	new sData[128] // If this is too high we end up with a stack error due to the recurssion with @import
 	while (!feof(iFileHandle))
 	{
 		fgets(iFileHandle, sData, charsmax(sData))
@@ -395,10 +424,7 @@ GetResourceType(sFile[])
 	return TYPE_GENERIC						
 }
 
-
-//  TODO: Implement some kind of writing to file / caching
-/*
-WritePrecaceFile(sFile[])
+WritePrecaceLogFile(sFile[])
 {
 	new iFileHandle = fopen(sFile, "wt")
 	if (!iFileHandle)
@@ -419,7 +445,6 @@ WritePrecaceFile(sFile[])
 	fclose(iFileHandle)
 	return 1
 }
-*/
 
 // The "sound/" directory at the start of the string is assumed by PrecacheSound and not included in the path
 public Forward_PrecacheSound(sFile[])
@@ -462,6 +487,7 @@ public Forward_PrecacheGeneric(sFile[])
 // The "sound/" directory at the start of the string is assumed by EmitSound and not included in the path
 public Forward_EmitSound(iEnt, iChannel, sSound[])
 {	
+	fm_DebugPrintLevel(2, "Forward_EmitSound: \"%s\"", sSound) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[TYPE_SOUND], sSound, 0, g_iResourceCount[TYPE_SOUND] - 1, 0) != -1)
 	{
 		fm_WarningLog("Blocked emitsound for file: \"sound/%s\"", sSound)	
@@ -472,6 +498,7 @@ public Forward_EmitSound(iEnt, iChannel, sSound[])
 
 public Forward_SetModel(iEnt, sModel[])
 {	
+	fm_DebugPrintLevel(2, "Forward_SetModel: \"%s\"", sModel) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[TYPE_MODEL], sModel, 0, g_iResourceCount[TYPE_MODEL] - 1, 0) != -1)
 	{
 		fm_WarningLog("Blocked setmodel for file: \"%s\"", sModel)
@@ -535,6 +562,45 @@ public Forward_HamCanDeploy(iEnt)
 	return HAM_SUPERCEDE
 }
 
+#if defined PRECACHE_TEST
+public Forward_CreateEntity()
+{
+	static iEnt; iEnt = get_orig_retval()
+	fm_DebugPrintLevel(1, "Forward_CreateEntity(%d)", iEnt)
+}
+
+public Forward_CreateNamedEntity_Post(iClassName)
+{
+	static iEnt, sClassName[32]
+	iEnt = get_orig_retval()
+	engfunc(EngFunc_SzFromIndex, iClassName, sClassName, charsmax(sClassName))
+	fm_DebugPrintLevel(1, "Forward_CreateNamedEntity_Post(%d): Classname: \"%s\"", iEnt, sClassName)
+}
+
+public Forward_Spawn(iEnt)
+{
+	fm_DebugPrintLevel(1, "Forward_Spawn(%d)", iEnt)
+}
+
+public Forward_KeyValue(iEnt, Kvd)
+{
+	static sKey[32]; sKey[0] = 0;
+	static sValue[128]; sValue[0] = 0;
+	get_kvd(Kvd, KV_KeyName, sKey, charsmax(sKey))	
+	get_kvd(Kvd, KV_Value, sValue, charsmax(sValue))
+	fm_DebugPrintLevel(1, "Forward_KeyValue(%d, {Key: \"%s\" Value: \"%s\"})", iEnt, sKey, sValue)
+}
+
+public Forward_ModelIndex(sModel[])
+{
+	fm_DebugPrintLevel(1, "Forward_ModelIndex(\"%s\")", sModel)
+}
+
+public Forward_RemoveEntity(iEnt)
+{
+	fm_DebugPrintLevel(1, "Forward_RemoveEntity(%d)", iEnt)
+}
+#endif
 
 
 
