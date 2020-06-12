@@ -20,7 +20,7 @@ stock fm_InsertIntoSortedList(Array:aList, sString[], iCaseSensitive = 0)
 
 stock fm_RemoveFromSortedList(Array:aList, sString[])
 {
-	new iIndex = fm_BinarySearch(aList, sString, 0, ArraySize(aList))
+	new iIndex = fm_BinarySearch(aList, sString, 0, ArraySize(aList) - 1)
 	if (iIndex != -1)
 	{
 		ArrayDeleteItem(aList, iIndex)
