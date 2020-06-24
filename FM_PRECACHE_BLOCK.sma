@@ -9,7 +9,7 @@
 #define	MAX_KEY	32
 #define	MAX_VALUE 1024
 
-#define PRECACHE_TEST
+//#define PRECACHE_TEST
 
 // The different types of resources that can be precached
 enum {
@@ -90,6 +90,7 @@ new HamHook:g_iWeaponBlockHandles[NUM_WEAPON_BLOCKS] // Handles for the Hamsandw
 new Array:g_ResourceBlockList[RESOURCE_TYPE_NUM] // The lists of resources that will be blocked
 new g_iResourceCount[RESOURCE_TYPE_NUM] // Counts for the above
 new g_sPrecacheDir[128] // Typically "amxmodx/configs/precache"
+new g_sCurrentMap[MAX_MAP_LEN]
 
 public plugin_precache()
 {
@@ -107,54 +108,63 @@ public plugin_precache()
 	// Lets store the precache config dir as a global as we'll use it several times
 	new sBuffer[128]; get_localinfo("amxx_configsdir", sBuffer, charsmax(sBuffer))
 	formatex(g_sPrecacheDir, charsmax(g_sPrecacheDir), "%s/precache", sBuffer)
+	get_mapname(g_sCurrentMap, charsmax(g_sCurrentMap))
 
-	// Read the default precache blocks. This will include everything that we could potentially block that isn't always needed in a map
-	formatex(sBuffer, charsmax(sBuffer), "%s/default.ini", g_sPrecacheDir)
-	ReadPrecacheFile(sBuffer, READ_BLACKLIST)
-
-	// Next unblock the resources we know we'll not use in this map. i.e. Resources linked to classes that are not enabled
-	// Or unblock resources where they are used in the map. Read this from the entdata.
-	new sCurrentMap[MAX_MAP_LEN]; get_mapname(sCurrentMap, charsmax(sCurrentMap))	
-	ReadMapEntData(sCurrentMap)
-
-	// Read the resources we always want to block regardless of what's been loaded so far
-	formatex(sBuffer, charsmax(sBuffer), "%s/default-blacklist.ini", g_sPrecacheDir)
+	// Reading all the files and entdata is time consuming, so read the cache if we have it
+	// We just have to remember to clear the cache if we edit the other config files TODO: md5 the main configs and detect changes
+	formatex(sBuffer, charsmax(sBuffer), "%s/cache/%s.ini", g_sPrecacheDir, g_sCurrentMap)
 	if (file_exists(sBuffer))
-	{	
+	{
+		fm_DebugPrintLevel(1, "Reading cached map blacklist config %s", sBuffer)
 		ReadPrecacheFile(sBuffer, READ_BLACKLIST)
 	}
-
-	// Repeat this for any map specific config
-	formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-blacklist.ini", g_sPrecacheDir, sCurrentMap)
-	if (file_exists(sBuffer))
+	else
 	{
-		ReadPrecacheFile(sBuffer, READ_WHITELIST)
-	}
+		// Read the default precache blocks. This will include everything that we could potentially block that isn't always needed in a map
+		formatex(sBuffer, charsmax(sBuffer), "%s/default.ini", g_sPrecacheDir)
+		fm_DebugPrintLevel(1, "Reading default config %s", sBuffer)
+		ReadPrecacheFile(sBuffer, READ_BLACKLIST)
 
-	// Read the resources we always want to remain unblocked
-	formatex(sBuffer, charsmax(sBuffer), "%s/default-whitelist.ini", g_sPrecacheDir)
-	if (file_exists(sBuffer))
-	{
-		ReadPrecacheFile(sBuffer, READ_WHITELIST)
-	}
+		// Next unblock the resources we know we'll not use in this map. i.e. Resources linked to classes that are not enabled
+		// Or unblock resources where they are used in the map. Read this from the entdata.	
+		fm_DebugPrintLevel(1, "Reading map entdata %s", g_sCurrentMap)
+		if (!ReadMapEntData(g_sCurrentMap))
+		{
+			for (new i = 0; i < RESOURCE_TYPE_NUM; i++)
+			{
+				ArrayClear(g_ResourceBlockList[i])
+				g_iResourceCount[i] = 0
+			}
+			return PLUGIN_CONTINUE
+		}
 
-	// Repeat this for any map specific config
-	formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-whitelist.ini", g_sPrecacheDir, sCurrentMap)
-	if (file_exists(sBuffer))
-	{
-		ReadPrecacheFile(sBuffer, READ_WHITELIST)
-	}
+		// Read the resources we always want to remain unblocked
+		formatex(sBuffer, charsmax(sBuffer), "%s/default-whitelist.ini", g_sPrecacheDir)
+		if (file_exists(sBuffer))
+		{
+			fm_DebugPrintLevel(1, "Reading default whitelist config %s", sBuffer)
+			ReadPrecacheFile(sBuffer, READ_WHITELIST)
+		}
 
-	// Write a log of the blocked resources for troubleshooting / reference
-	formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-result.log", g_sPrecacheDir, sCurrentMap)
-	WritePrecaceLogFile(sBuffer)
+		// Repeat this for any map specific config
+		formatex(sBuffer, charsmax(sBuffer), "%s/maps/%s-whitelist.ini", g_sPrecacheDir, g_sCurrentMap)
+		if (file_exists(sBuffer))
+		{
+			fm_DebugPrintLevel(1, "Reading default map whitelist config %s", sBuffer)
+			ReadPrecacheFile(sBuffer, READ_WHITELIST)
+		}
+
+		// Write a log of the blocked resources for troubleshooting / reference
+		formatex(sBuffer, charsmax(sBuffer), "%s/cache/%s.ini", g_sPrecacheDir, g_sCurrentMap)
+		WritePrecaceLogFile(sBuffer)
+	}
 
 	// Lets try to catch where the models or sounds are used by hooking onto the common way these resources are used. It is not the intention of this plugin to replace resources,
 	// and this is an attempt to protect against crashing if we blocked something that is used. This shouldn't happen unless mistakes are made.
 	if (g_iResourceCount[RESOURCE_TYPE_SOUND] > 0)
 	{
 		register_forward(FM_EmitSound, "Forward_EmitSound")
-		register_forward(FM_EmitAmbientSound, "Forward_EmitAmbientSound") // Not sure this is used.
+		register_forward(FM_EmitAmbientSound, "Forward_EmitAmbientSound")
 	}
 	if (g_iResourceCount[RESOURCE_TYPE_MODEL] > 0)
 	{
@@ -163,18 +173,16 @@ public plugin_precache()
 		
 	}
 
-	
 	#if defined PRECACHE_TEST
-	// Used when capturing precache data / troubleshooting
-
 	register_forward(FM_KeyValue, "Forward_KeyValue")
 	register_forward(FM_Spawn, "Forward_Spawn")
 	register_forward(FM_CreateEntity, "Forward_CreateEntity")
 	register_forward(FM_CreateNamedEntity, "Forward_CreateNamedEntity_Post", 1)
 	register_forward(FM_RemoveEntity, "Forward_RemoveEntity")
 	//register_forward(FM_ModelIndex, "Forward_ModelIndex") // Holy spam.
-
 	#endif
+
+	return PLUGIN_CONTINUE
 }
 
 public plugin_init()
@@ -228,7 +236,7 @@ ReadMapEntData(sMap[])
 
 	new iEndOffset = iEntOffset + iEntDataSize // Calculate end offset of entdata	
 	new sData[MAX_KEY + MAX_VALUE + 8], sKey[MAX_KEY], sValue[MAX_VALUE]
-	new bool:bDetectEnt, bool:bClassLimitDone, iClassRestrictionValue = MAX_CLASS_BLOCK_VAL
+	new bool:bDetectEntFound, bool:bDetectEntCurrent, bool:bClassLimitDone, iClassRestrictionValue = MAX_CLASS_BLOCK_VAL
 	new bool:bCivilianClass, bool:bClassKeyParsed, iLine, sPath[128]
 
 	// TODO: I'm not super happy about having to capture the info_tfdetect data like this. It works, but is ugly.
@@ -242,17 +250,18 @@ ReadMapEntData(sMap[])
 		}
 		
 		fgets(iFileHandle, sData, charsmax(sData))
+		trim(sData)
 		iLine++
 
 		if (!sData[0] || sData[0] == '{' || sData[0] == '}')
 		{
 			// Entity we are working on is now changing. If the current entity the info_tfdetect lets process what we (hopefully) read from the class keys
-			if (bDetectEnt)
+			if (bDetectEntCurrent)
 			{		
 				fm_DebugPrintLevel(2, "Finished processing info_tfdetect. iClassRestrictionValue: %d bCivilianClass: %s bClassKeyParsed: %s", iClassRestrictionValue, bCivilianClass ? "Y" : "N", bClassKeyParsed ? "Y" : "N")	
 	
 				bClassLimitDone = true // Avoid any more processing of the class related keys. TFC shares keys so the keys used for class restrictions aren't unique to the info_tfdetect entity
-				bDetectEnt = false // Mark that we're no longer working with the info_tfdetect
+				bDetectEntCurrent = false // Mark that we're no longer working with the info_tfdetect
 
 				// If a civilian class was found whitelist the resources associated with it
 				if (bCivilianClass)
@@ -297,12 +306,20 @@ ReadMapEntData(sMap[])
 
 					// Now THIS is podracing! Flag that we've seen the info_tfdetect. Because we want to grab any class restriction keys
 					// Note: This can and does often appear after of all the others keyvalue pairs, so often we've already read the keys by this point.
-					bDetectEnt = true  
+					bDetectEntCurrent = true  
+					bDetectEntFound = true
+				}
+
+				else if (equal(sValue, "monster_miniturret") || equal(sValue, "monster_turret")) 
+				{
+					RemoveFromBlockList("sound/weapons/hks1.wav", RESOURCE_TYPE_SOUND)
+					RemoveFromBlockList("sound/weapons/hks2.wav", RESOURCE_TYPE_SOUND)
+					RemoveFromBlockList("sound/weapons/hks3.wav", RESOURCE_TYPE_SOUND)
 				}
 
 				// Not all maps need the healing sound, but the sounds are precached on all. used by medic, but block/unblock in the tf_weapon_medikit config. 
 				// But there's a chance someone has used a wall health charger, so unblock if so.
-				else if (equal(sValue, "func_healthcharger:")) 
+				else if (equal(sValue, "func_healthcharger")) 
 				{
 					RemoveFromBlockList("sound/items/medshot4.wav", RESOURCE_TYPE_SOUND) // This one is emitted on the server side, but...
 					RemoveFromBlockList("sound/items/medshot4.wav", RESOURCE_TYPE_SOUND) // ... I can't see where this is used, possibly clientside when healing.
@@ -491,6 +508,11 @@ ReadMapEntData(sMap[])
 			fm_WarningLog("Error parsing line %d of %s entdata", iLine, sMap)
 		}
 	}
+
+	if (!bDetectEntFound)
+	{
+		return 0
+	}
 	return 1
 }
 
@@ -516,11 +538,13 @@ ReadPrecacheFile(sFile[], iBlackList)
 		return 0
 	}
 
-	new sData[128] // If this is too high we end up with a stack error due to the recurssion with @import
+	new iLine, sData[MAX_RESOURCE_LEN] // This is 64. But if this is too high we end up with a stack error due to the recurssion with @import. We should be OK with the current config
 	while (!feof(iFileHandle))
 	{
+		iLine++
 		fgets(iFileHandle, sData, charsmax(sData))
 		trim(sData)
+		fm_DebugPrintLevel(1, "Line %d of \"%s\": \"%s\"", iLine, sFile, sData)
 
 		if(!sData[0] || sData[0] == ';' || sData[0] == '#' || equal(sData, "//", 2)) 
 		{
@@ -560,6 +584,7 @@ ReadPrecacheFile(sFile[], iBlackList)
 			{
 				if (iBlackList == READ_BLACKLIST)
 				{
+					fm_DebugPrintLevel(2, "Adding: \"%s\" to blacklist (%d)", sData[iType == RESOURCE_TYPE_SOUND ? 6 : 0], iType)
 					if (fm_InsertIntoSortedList(g_ResourceBlockList[iType], sData[iType == RESOURCE_TYPE_SOUND ? 6 : 0]))
 					{
 						fm_DebugPrintLevel(2, "Added: \"%s\" to blacklist (%d)", sData[iType == RESOURCE_TYPE_SOUND ? 6 : 0], iType)
@@ -568,12 +593,13 @@ ReadPrecacheFile(sFile[], iBlackList)
 				}
 				else // Assume type whitelist
 				{
+					fm_DebugPrintLevel(2, "Removing: \"%s\" from blacklist (%d)", sData, iType)
 					RemoveFromBlockList(sData, iType)
 				}
 			}
 			else
 			{
-				fm_WarningLog("Error reading \"%s\". Not a file: \"%s\"", sFile, sData)
+				fm_WarningLog("Error reading \"%s\" Line #%d. Not a file: \"%s\"", sFile, iLine, sData)
 			}
 		}		
 	}
@@ -666,7 +692,7 @@ public Forward_EmitSound(iEnt, iChannel, sSound[])
 	fm_DebugPrintLevel(2, "Forward_EmitSound: \"sound/%s\"", sSound) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_SOUND], sSound, 0, g_iResourceCount[RESOURCE_TYPE_SOUND] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked EmitSound for file: \"sound/%s\"", sSound)	
+		fm_WarningLog("Blocked EmitSound on map \"%s\" for file: \"sound/%s\"", g_sCurrentMap, sSound)	
 		return FMRES_SUPERCEDE
 	}
 	return FMRES_IGNORED
@@ -677,7 +703,7 @@ public Forward_EmitAmbientSound(iEnt, iChannel, sSound[])
 	fm_DebugPrintLevel(2, "Forward_EmitAmbientSound: \"sound/%s\"", sSound) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_SOUND], sSound, 0, g_iResourceCount[RESOURCE_TYPE_SOUND] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked EmitAmbientSound for file: \"sound/%s\"", sSound)	
+		fm_WarningLog("Blocked EmitAmbientSound on map \"%s\" for file: \"sound/%s\"", g_sCurrentMap, sSound)
 		return FMRES_SUPERCEDE
 	}
 	return FMRES_IGNORED
@@ -688,7 +714,7 @@ public Forward_SetModel(iEnt, sModel[])
 	fm_DebugPrintLevel(2, "Forward_SetModel: \"%s\"", sModel) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_MODEL], sModel, 0, g_iResourceCount[RESOURCE_TYPE_MODEL] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked setmodel for file: \"%s\"", sModel)
+		fm_WarningLog("Blocked setmodel on map \"%s\" for file: \"%s\"", g_sCurrentMap, sModel)
 		engfunc(EngFunc_SetModel, iEnt, g_sReplacementModel) // Replace unprecached models with replacement "error" model
 		return FMRES_SUPERCEDE
 	}
@@ -714,7 +740,9 @@ AllowWeaponDeploy(sWeapon[])
 	if (iIndex != -1 && g_iWeaponBlockHandles[iIndex])
 	{
 		DisableHamForward(g_iWeaponBlockHandles[iIndex])
+		return 1
 	}
+	return 0
 }
 
 BlockWeaponDeploy(sWeapon[])
@@ -741,8 +769,7 @@ BlockWeaponDeploy(sWeapon[])
 // We're only aiming to block class based weapons on maps where those classes are not available, so log an error.
 public Forward_HamCanDeploy(iEnt)
 {
-	new sCurrentMap[MAX_MAP_LEN]; get_mapname(sCurrentMap, charsmax(sCurrentMap))
-	fm_WarningLog("Blocked weapon deployment! Check precache files for %s", sCurrentMap)
+	fm_WarningLog("Blocked weapon deployment! Check precache files for %s", g_sCurrentMap)
 
 	// Return 0 and SUPERCEDE so the weapon is not deployed
 	SetHamReturnInteger(0)
