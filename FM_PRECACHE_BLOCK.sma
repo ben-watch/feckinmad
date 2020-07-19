@@ -136,6 +136,11 @@ public plugin_precache()
 				ArrayClear(g_ResourceBlockList[i])
 				g_iResourceCount[i] = 0
 			}
+
+			for (new i = 0; i < NUM_WEAPON_BLOCKS; i++)
+			{
+				AllowWeaponDeploy(g_sValidWeaponBlocks[i])
+			}
 			return PLUGIN_CONTINUE
 		}
 
@@ -239,7 +244,8 @@ ReadMapEntData(sMap[])
 	new iEndOffset = iEntOffset + iEntDataSize // Calculate end offset of entdata	
 	new sData[MAX_KEY + MAX_VALUE + 8], sKey[MAX_KEY], sValue[MAX_VALUE]
 	new bool:bDetectEntFound, bool:bDetectEntCurrent, bool:bClassLimitDone, iClassRestrictionValue = MAX_CLASS_BLOCK_VAL
-	new bool:bCivilianClass, bool:bClassKeyParsed, iLine, sPath[128]
+	new bool:bClassKeyParsed, iLine, sPath[128]
+	new iTeamCount, iCivilianClassCount
 
 	// TODO: I'm not super happy about having to capture the info_tfdetect data like this. It works, but is ugly.
 	// Need to write parser function that will read all the lines related to entity keys at once.
@@ -260,22 +266,23 @@ ReadMapEntData(sMap[])
 			// Entity we are working on is now changing. If the current entity the info_tfdetect lets process what we (hopefully) read from the class keys
 			if (bDetectEntCurrent)
 			{		
-				fm_DebugPrintLevel(2, "Finished processing info_tfdetect. iClassRestrictionValue: %d bCivilianClass: %s bClassKeyParsed: %s", iClassRestrictionValue, bCivilianClass ? "Y" : "N", bClassKeyParsed ? "Y" : "N")	
+				fm_DebugPrintLevel(2, "Finished processing info_tfdetect. iTeamCount: %d iClassRestrictionValue: %d iCivilianClassCount: %d bClassKeyParsed: %s", iTeamCount, iClassRestrictionValue, iCivilianClassCount, bClassKeyParsed ? "Y" : "N")	
 	
 				bClassLimitDone = true // Avoid any more processing of the class related keys. TFC shares keys so the keys used for class restrictions aren't unique to the info_tfdetect entity
 				bDetectEntCurrent = false // Mark that we're no longer working with the info_tfdetect
 
 				// If a civilian class was found whitelist the resources associated with it
-				if (bCivilianClass)
+				if (iCivilianClassCount > 0)
 				{
 					formatex(sPath, charsmax(sPath), "%s/tf_class_civilian.ini", g_sPrecacheDir)
+					AllowWeaponDeploy("tf_weapon_axe") // Unblock tf_weapon_axe here rather than the config, so we can eek out a few more precache by not precaching crowbar models.
 					ReadPrecacheFile(sPath, READ_WHITELIST)
 				}
 				
-				// If no class restriction keys were parsed. There's no restrictions
-				// OR if the class restriction value is blocking all classes, we know it's possibly read -1
-				// for civilian, and the other class restriction keys are unlisted, but still unrestricted
-				if (!bClassKeyParsed || iClassRestrictionValue == MAX_CLASS_BLOCK_VAL)
+				// If no class restriction entdata keys were parsed. There's no restrictions.
+				// OR if the class restriction value is blocking all classes, check if we have any teams that aren't restricted to civilian.
+				// Since it's possible the other teams class restriction keys are not present, and therefore unrestricted e.g. hns16_beta3
+				if (!bClassKeyParsed || ((iClassRestrictionValue == MAX_CLASS_BLOCK_VAL) && (iCivilianClassCount < iTeamCount)))
 				{
 					iClassRestrictionValue = 0
 				}
@@ -294,10 +301,11 @@ ReadMapEntData(sMap[])
 			{
 				// There's a chance that we read keys that belong to another entity and not the info_tfdetect. Reset the variables after each non info_tfdetect entity.
 				// TODO: This is a bit of shitshow. Lets rewrite some nice entdata parser at a later date...
-				bCivilianClass = false
+				iCivilianClassCount = 0
 				iClassRestrictionValue = MAX_CLASS_BLOCK_VAL
 				bClassLimitDone = false
 				bClassKeyParsed = false
+				iTeamCount = 0
 			}	
 		}
 		else if (parse(sData, sKey, charsmax(sKey), sValue, charsmax(sValue)) == 2)
@@ -454,7 +462,7 @@ ReadMapEntData(sMap[])
 				{
 					case -1: // Only civilian on this team
 					{
-						bCivilianClass = true
+						iCivilianClassCount++
 					}
 					case 0: // All classes are allowed, so we can't unprecache any class related resources. 
 					{
@@ -468,6 +476,16 @@ ReadMapEntData(sMap[])
 					}
 				}
 				bClassKeyParsed = true
+			}
+			else if (equal(sKey, "team", 4) && equal(sKey[6], "name"))
+			{
+				sKey[5] = 0
+				new iValue = str_to_num(sKey[4])
+				fm_DebugPrintLevel(2, "Team %d Name: \"%s\"", iValue, sValue)
+				if (iValue > iTeamCount)
+				{
+					iTeamCount = iValue
+				}
 			}
 			else if (equal(sKey, "invincible_finished"))
 			{
