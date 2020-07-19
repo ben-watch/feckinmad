@@ -3,6 +3,7 @@
 
 #include <fakemeta>
 #include <hamsandwich>
+//#include <orpheu>
 
 // For reading keyvalue pairs from the .bsp entdata
 #define BSPVERSION 30
@@ -165,6 +166,7 @@ public plugin_precache()
 	{
 		register_forward(FM_EmitSound, "Forward_EmitSound")
 		register_forward(FM_EmitAmbientSound, "Forward_EmitAmbientSound")
+		//OrpheuRegisterHook(OrpheuGetFunction("SV_LookupSoundIndex"), "Forward_LookupSoundIndex") // BUG with blocking SFX...
 	}
 	if (g_iResourceCount[RESOURCE_TYPE_MODEL] > 0)
 	{
@@ -271,7 +273,9 @@ ReadMapEntData(sMap[])
 				}
 				
 				// If no class restriction keys were parsed. There's no restrictions
-				if (!bClassKeyParsed)
+				// OR if the class restriction value is blocking all classes, we know it's possibly read -1
+				// for civilian, and the other class restriction keys are unlisted, but still unrestricted
+				if (!bClassKeyParsed || iClassRestrictionValue == MAX_CLASS_BLOCK_VAL)
 				{
 					iClassRestrictionValue = 0
 				}
@@ -332,7 +336,7 @@ ReadMapEntData(sMap[])
 				}
 
 				// Not all maps need the train use sound. Block in default config and unblock here if func_traintrack exists
-				else if (equal(sValue, "func_traintrack"))
+				else if (equal(sValue, "func_tracktrain"))
 				{
 					RemoveFromBlockList("sound/plats/train_use1.wav", RESOURCE_TYPE_SOUND)
 				}
@@ -379,7 +383,8 @@ ReadMapEntData(sMap[])
 				else if (equal(sValue, "item_healthkit"))
 				{
 					RemoveFromBlockList("models/w_medkit.mdl", RESOURCE_TYPE_MODEL)
-					RemoveFromBlockList("sound/items/smallmedkit1.wav", RESOURCE_TYPE_SOUND)
+					RemoveFromBlockList("sound/items/smallmedkit1.wav", RESOURCE_TYPE_SOUND) // Touch Sound
+					RemoveFromBlockList("sound/items/suitchargeok1.wav", RESOURCE_TYPE_SOUND) // Respawn sound
 				}
 
 				else if (equal(sValue, "item_armor", 10)) 
@@ -499,7 +504,10 @@ ReadMapEntData(sMap[])
 				new iType = GetResourceType(sValue)
 				if (iType != -1)
 				{
-					RemoveFromBlockList(sValue, iType)
+					fm_DebugPrintLevel(3, "Line %d of %s entdata is a resource: \"%s\"", iLine, sMap, sValue)
+					remove_quotes(sValue)
+					new sBuffer[128]; formatex(sBuffer, charsmax(sBuffer), "%s%s", iType == RESOURCE_TYPE_SOUND ? "sound/" : "", sValue)
+					RemoveFromBlockList(sBuffer, iType)
 				}
 			}
 		}
@@ -539,12 +547,13 @@ ReadPrecacheFile(sFile[], iBlackList)
 	}
 
 	new iLine, sData[MAX_RESOURCE_LEN] // This is 64. But if this is too high we end up with a stack error due to the recurssion with @import. We should be OK with the current config
+
 	while (!feof(iFileHandle))
 	{
 		iLine++
 		fgets(iFileHandle, sData, charsmax(sData))
 		trim(sData)
-		fm_DebugPrintLevel(1, "Line %d of \"%s\": \"%s\"", iLine, sFile, sData)
+		//fm_DebugPrintLevel(1, "Line %d of \"%s\": \"%s\"", iLine, sFile, sData)
 
 		if(!sData[0] || sData[0] == ';' || sData[0] == '#' || equal(sData, "//", 2)) 
 		{
@@ -553,12 +562,18 @@ ReadPrecacheFile(sFile[], iBlackList)
 
 		if (sData[0] == '@')
 		{
-			if (equal(sData[1], "import ", 7) && !(equali(sFile, sData[8])))
+			if (equali(sData[1], "import ", 7))
 			{
+				new iPos = contain(sData[8], ".") // BUGBUG: Asummes only a single . is ever contained (for the file ext)
+				if (iPos == -1)
+				{
+					iPos = 0
+				}
+
 				// If the file to read is a weapon make and we're whitelisting, make sure we unblock the weapon deploy
 				for (new i = 0; i < NUM_WEAPON_BLOCKS; i++)
 				{
-					if (equali(sData[8], g_sValidWeaponBlocks[i]))
+					if (equali(sData[8], g_sValidWeaponBlocks[i], iPos - 1))
 					{
 						if (iBlackList == READ_BLACKLIST)
 						{
@@ -641,7 +656,7 @@ WritePrecaceLogFile(sFile[])
 		for (new j = 0; j < g_iResourceCount[i]; j++)
 		{
 			ArrayGetString(g_ResourceBlockList[i], j, sResource, charsmax(sResource))
-			fprintf(iFileHandle, "%s\n", sResource)
+			fprintf(iFileHandle, "%s%s\n", i == RESOURCE_TYPE_SOUND ? "sound/" : "", sResource)
 		}
 	}
 	fclose(iFileHandle)
@@ -692,7 +707,13 @@ public Forward_EmitSound(iEnt, iChannel, sSound[])
 	fm_DebugPrintLevel(2, "Forward_EmitSound: \"sound/%s\"", sSound) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_SOUND], sSound, 0, g_iResourceCount[RESOURCE_TYPE_SOUND] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked EmitSound on map \"%s\" for file: \"sound/%s\"", g_sCurrentMap, sSound)	
+		new sClassName[32]
+		if (pev_valid(iEnt))
+		{
+			pev(iEnt, pev_classname, sClassName, charsmax(sClassName))
+		}
+
+		fm_WarningLog("Blocked EmitSound for classname: \"%s\" on map \"%s\" for file: \"sound/%s\"", sClassName, g_sCurrentMap, sSound)	
 		return FMRES_SUPERCEDE
 	}
 	return FMRES_IGNORED
@@ -703,18 +724,39 @@ public Forward_EmitAmbientSound(iEnt, iChannel, sSound[])
 	fm_DebugPrintLevel(2, "Forward_EmitAmbientSound: \"sound/%s\"", sSound) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_SOUND], sSound, 0, g_iResourceCount[RESOURCE_TYPE_SOUND] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked EmitAmbientSound on map \"%s\" for file: \"sound/%s\"", g_sCurrentMap, sSound)
+		new sClassName[32]
+		if (pev_valid(iEnt))
+		{
+			pev(iEnt, pev_classname, sClassName, charsmax(sClassName))
+		}
+
+		fm_WarningLog("Blocked EmitAmbientSound for classname: \"%s\" on map \"%s\" for file: \"sound/%s\"", sClassName, g_sCurrentMap, sSound)
 		return FMRES_SUPERCEDE
 	}
 	return FMRES_IGNORED
 }
+
+
+/*public OrpheuHookReturn:Forward_LookupSoundIndex(const sSound[])
+{
+	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_SOUND], sSound, 0, g_iResourceCount[RESOURCE_TYPE_SOUND] - 1, 0) != -1)
+	{
+		fm_WarningLog("SV_LookupSoundIndex was called for blocked sound: %s", sSound)
+	}
+}*/
 
 public Forward_SetModel(iEnt, sModel[])
 {	
 	fm_DebugPrintLevel(2, "Forward_SetModel: \"%s\"", sModel) 
 	if (fm_BinarySearch(Array:g_ResourceBlockList[RESOURCE_TYPE_MODEL], sModel, 0, g_iResourceCount[RESOURCE_TYPE_MODEL] - 1, 0) != -1)
 	{
-		fm_WarningLog("Blocked setmodel on map \"%s\" for file: \"%s\"", g_sCurrentMap, sModel)
+		new sClassName[32]
+		if (pev_valid(iEnt))
+		{
+			pev(iEnt, pev_classname, sClassName, charsmax(sClassName))
+		}
+		
+		fm_WarningLog("Blocked SetModel for classname: \"%s\" on map \"%s\" for model file \"%s\"", sClassName, g_sCurrentMap, sModel)
 		engfunc(EngFunc_SetModel, iEnt, g_sReplacementModel) // Replace unprecached models with replacement "error" model
 		return FMRES_SUPERCEDE
 	}
@@ -736,6 +778,8 @@ GetWeaponBlockIndex(sWeapon[])
 
 AllowWeaponDeploy(sWeapon[])
 {
+	fm_DebugPrintLevel(1, "AllowWeaponDeploy: %s", sWeapon)
+
 	new iIndex = GetWeaponBlockIndex(sWeapon)
 	if (iIndex != -1 && g_iWeaponBlockHandles[iIndex])
 	{
@@ -747,13 +791,15 @@ AllowWeaponDeploy(sWeapon[])
 
 BlockWeaponDeploy(sWeapon[])
 {
+	fm_DebugPrintLevel(1, "BlockWeaponDeploy: %s", sWeapon)
+
 	new iIndex = GetWeaponBlockIndex(sWeapon)
 	if (iIndex != -1)
 	{
 		// Check if the weapon deploy hook has already been created. If not, create it. Else just ensure we didn't disable it.
 		if (!g_iWeaponBlockHandles[iIndex])
 		{
-			RegisterHam(Ham_Item_CanDeploy, g_sValidWeaponBlocks[iIndex], "Forward_HamCanDeploy")
+			g_iWeaponBlockHandles[iIndex] = RegisterHam(Ham_Item_CanDeploy, g_sValidWeaponBlocks[iIndex], "Forward_HamCanDeploy")
 		}
 		else
 		{
