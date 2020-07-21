@@ -64,6 +64,8 @@ public plugin_natives()
 	register_native("fm_GetSubBodyPartTotalByModelIndex", "Native_GetSubBodyPartTotalByModelIndex")
 	register_native("fm_GetSubBodyNameByIndex", "Native_GetSubBodyNameByIndex")
 
+	register_native("fm_GetPlayerCurrentModelIndex", "Native_GetPlayerCurrentModelIndex")
+
 	register_library(g_sPlayerModelAPILibName)
 }
 
@@ -262,7 +264,7 @@ public Native_AddPlayerModel(iPlugin, iParams)
 		return 0
 	}
 
-	if (!fm_SafePrecacheModel(sModelPath)) // Warning logging inside function
+	if (!fm_SafePrecacheGeneric(sModelPath)) // Warning logging inside function
 	{
 		return 0
 	}
@@ -270,6 +272,19 @@ public Native_AddPlayerModel(iPlugin, iParams)
 	ArrayPushArray(Array:GetModelArray(), Model)
 	g_iModelNum++
 	return 1
+}
+
+
+public Native_GetPlayerCurrentModelIndex(iPlugin, iParams)
+{
+	new id = get_param(1)
+
+	if (id < 1 || id > g_iMaxPlayers)
+	{
+		log_error(AMX_ERR_NATIVE, "Player out of range (%d)", id)
+		return -1
+	}
+	return g_iPlayerCurrentPlayerModel[id] 
 }
 
 public Native_RemovePlayerModel(iPlugin, iParams)

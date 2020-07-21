@@ -27,3 +27,13 @@ stock fm_SafePrecacheModel(const sFile[])
 	}
 	return engfunc(EngFunc_PrecacheModel, sFile)
 }
+
+stock fm_SafePrecacheGeneric(const sFile[])
+{
+	if (!file_exists(sFile))
+	{
+		fm_WarningLog("Failed to precache generic \"%s\"", sFile)
+		return 0
+	}
+	return engfunc(EngFunc_PrecacheGeneric, sFile)
+}
