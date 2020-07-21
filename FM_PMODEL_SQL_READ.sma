@@ -4,6 +4,7 @@
 #include "feckinmad/fm_playermodel_api"
 
 #define MAX_DB_CACHE_AGE 86400 // 24 hours
+#define ALWAYS_LOAD 1 // Overwrite the cache age. I find querying models every mapchange actually works best, but I don't want to move the cache code.
 
 new const g_sModelQuery[] = "SELECT model_id, model_name FROM models WHERE model_active=1"
 new const g_sModelFile[] = "fm_pmodels_cache.dat" // File to which database model information is saved
@@ -72,15 +73,17 @@ ReadCacheFile()
 	return iLastUpdate
 }
 
+
 public plugin_init() 
 { 
 	fm_RegisterPlugin()
 
 	// Determine if the cache is old enough to warrant reloading from db. Using cached results saves having to query on every mapload
-	if (g_iLastDatabaseUpdate <= 0 || ((get_systime() - g_iLastDatabaseUpdate) > MAX_DB_CACHE_AGE)) 
+	if (ALWAYS_LOAD || (g_iLastDatabaseUpdate <= 0 || ((get_systime() - g_iLastDatabaseUpdate) > MAX_DB_CACHE_AGE))) 
 	{
 		RunPlayerModelQuery()
 	}	
+	
 }
 
 RunPlayerModelQuery()
