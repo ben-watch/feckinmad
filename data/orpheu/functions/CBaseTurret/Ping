@@ -1,0 +1,18 @@
+{
+	"name" : "Ping",
+	"class" : "CBaseTurret",
+	"library" : "mod",
+	"identifiers" : 
+    [
+        {
+            "os"    : "windows",
+            "mod"   : "tfc",
+            "value" : [0x56,0x8B,"*",0xD9,"*","*","*","*","*",0xD8,"*","*","*","*","*",0xDF,"*",0xF6,"*","*",0x7A,"*",0xA1,"*","*","*","*",0xD9,"*",0xD8,"*","*"]
+        },
+        {
+            "os" : "linux",
+			"mod"   : "tfc",
+            "value" : "Ping__11CBaseTurret"
+        }
+    ]
+}
