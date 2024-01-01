@@ -703,7 +703,7 @@ public Admin_Checkpoint(id, iLevel, iCommand)
 	{
 		if(is_user_connected(i))
 		{
-			UpdateCheckHUD(id)
+			UpdateCheckHUD(i)
 		}
 	}
 
